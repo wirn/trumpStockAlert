@@ -1,0 +1,2 @@
+"""Collector package for trumpStockAlert."""
+

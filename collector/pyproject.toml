@@ -1,0 +1,21 @@
+[project]
+name = "trump-stock-alert-collector"
+version = "0.1.0"
+description = "Step 1 Collector for trumpStockAlert: fetch and normalize Truth Social posts."
+requires-python = ">=3.10"
+dependencies = [
+    "truthbrush>=0.2.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["collector*"]
+exclude = ["data*", "tests*"]

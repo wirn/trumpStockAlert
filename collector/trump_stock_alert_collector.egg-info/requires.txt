@@ -1,0 +1,4 @@
+truthbrush>=0.2.5
+
+[dev]
+pytest>=8.0.0
