@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from collector.models import NormalizedPost
+from collector.post_store_result import SavePostsResult
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,18 @@ class TruthPostStore:
         return posts
 
     def append_new_posts(self, posts: list[NormalizedPost]) -> list[NormalizedPost]:
+        return self.save_posts(posts).saved_posts
+
+    def save_posts(self, posts: list[NormalizedPost]) -> SavePostsResult:
         existing_posts = self.load_posts()
         existing_keys = self._build_existing_keys(existing_posts)
 
         new_posts: list[NormalizedPost] = []
+        already_existing_count = 0
         for post in posts:
             key = (post.source, post.externalId)
             if key in existing_keys:
+                already_existing_count += 1
                 continue
 
             existing_keys.add(key)
@@ -53,12 +59,12 @@ class TruthPostStore:
 
         if not new_posts:
             logger.info("No new posts to save.")
-            return []
+            return SavePostsResult([], already_existing_count)
 
         updated_posts = existing_posts + [post.to_dict() for post in new_posts]
         self._save_posts(updated_posts)
         logger.info("Saved %s new posts to %s.", len(new_posts), self.path)
-        return new_posts
+        return SavePostsResult(new_posts, already_existing_count)
 
     def _build_existing_keys(self, posts: list[dict[str, Any]]) -> set[PostKey]:
         keys: set[PostKey] = set()

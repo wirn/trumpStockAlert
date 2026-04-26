@@ -12,6 +12,8 @@ class CollectorConfig:
     truth_social_username: str = "realDonaldTrump"
     max_posts: int = 10
     lookback_minutes: int = 5
+    store_mode: str = "api"
+    truth_post_api_base_url: str = "http://localhost:5044"
     truth_posts_file_path: Path = Path("./data/truth-posts.json")
     output_mode: str = "console"
 
@@ -43,10 +45,25 @@ class CollectorConfig:
         if not username:
             raise ValueError("TRUTH_SOCIAL_USERNAME cannot be empty.")
 
+        store_mode = os.getenv("COLLECTOR_STORE_MODE", "api").strip().lower()
+        if store_mode not in {"api", "json"}:
+            raise ValueError("COLLECTOR_STORE_MODE must be either `api` or `json`.")
+
+        truth_post_api_base_url = (
+            os.getenv("TRUTH_POST_API_BASE_URL")
+            or "http://localhost:5044"
+        ).strip()
+        if store_mode == "api" and not truth_post_api_base_url:
+            raise ValueError(
+                "TRUTH_POST_API_BASE_URL cannot be empty when using API mode."
+            )
+
         return cls(
             truth_social_username=username.lstrip("@"),
             max_posts=max_posts,
             lookback_minutes=lookback_minutes,
+            store_mode=store_mode,
+            truth_post_api_base_url=truth_post_api_base_url,
             truth_posts_file_path=Path(
                 os.getenv("TRUTH_POSTS_FILE_PATH", "./data/truth-posts.json")
             ),

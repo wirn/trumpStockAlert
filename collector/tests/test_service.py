@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from collector.normalizer import PostNormalizer
+from collector.post_store_result import SavePostsResult
 from collector.service import CollectorService
 from collector.truth_post_store import TruthPostStore
 
@@ -15,6 +16,16 @@ class FakeClient:
         self, max_posts: int, created_after: datetime | None = None
     ) -> list[dict[str, Any]]:
         return self.posts[:max_posts]
+
+
+class FakeApiStore:
+    def __init__(self, result: SavePostsResult) -> None:
+        self.result = result
+        self.saved_inputs: list[Any] = []
+
+    def save_posts(self, posts: list[Any]) -> SavePostsResult:
+        self.saved_inputs = posts
+        return self.result
 
 
 def test_duplicate_filtering(tmp_path: Path) -> None:
@@ -83,3 +94,33 @@ def test_filters_out_posts_older_than_created_after(tmp_path: Path) -> None:
 
     assert [post.externalId for post in new_posts] == ["2"]
     assert [post["externalId"] for post in post_store.load_posts()] == ["2"]
+
+
+def test_test_mode_still_persists_fetched_posts() -> None:
+    post = PostNormalizer("realDonaldTrump").normalize(
+        {
+            "id": "1",
+            "content": "Latest post",
+            "created_at": "2026-04-26T12:00:00.000Z",
+        }
+    )
+    post_store = FakeApiStore(SavePostsResult(saved_posts=[post], already_existing_count=0))
+    service = CollectorService(
+        client=FakeClient(
+            [
+                {
+                    "id": "1",
+                    "content": "Latest post",
+                    "created_at": "2026-04-26T12:00:00.000Z",
+                }
+            ]
+        ),
+        normalizer=PostNormalizer("realDonaldTrump"),
+        post_store=post_store,
+        test_mode=True,
+    )
+
+    new_posts = service.run(max_posts=1)
+
+    assert [saved.externalId for saved in post_store.saved_inputs] == ["1"]
+    assert [saved.externalId for saved in new_posts] == ["1"]

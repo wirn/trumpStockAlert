@@ -6,7 +6,9 @@ import logging
 import sys
 from argparse import ArgumentParser
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
+from collector.api_truth_post_store import ApiTruthPostStore
 from collector.config import CollectorConfig
 from collector.normalizer import PostNormalizer
 from collector.service import CollectorService
@@ -51,11 +53,22 @@ def main(argv: list[str] | None = None) -> int:
                 config.lookback_minutes,
             )
 
+        post_store: Any = (
+            ApiTruthPostStore(config.truth_post_api_base_url)
+            if config.store_mode == "api"
+            else TruthPostStore(config.truth_posts_file_path)
+        )
+
+        if isinstance(post_store, ApiTruthPostStore):
+            logger.info("Collector API base URL: %s", post_store.base_url)
+            logger.info("Collector API endpoint: %s", post_store.endpoint_url)
+
         service = CollectorService(
             client=TruthSocialClient(config.truth_social_username),
             normalizer=PostNormalizer(config.truth_social_username),
-            post_store=TruthPostStore(config.truth_posts_file_path),
+            post_store=post_store,
             output_mode=config.output_mode,
+            test_mode=test_mode,
         )
         service.run(max_posts, created_after=created_after)
     except Exception:

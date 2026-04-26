@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
 from collector.models import NormalizedPost
 from collector.normalizer import PostNormalizer
-from collector.truth_post_store import TruthPostStore
+from collector.post_store_result import SavePostsResult
 from collector.truth_social_client import TruthSocialClient
 
 logger = logging.getLogger(__name__)
@@ -19,18 +20,23 @@ class CollectorService:
         self,
         client: TruthSocialClient,
         normalizer: PostNormalizer,
-        post_store: TruthPostStore,
+        post_store: Any,
         output_mode: str = "console",
+        test_mode: bool = False,
     ) -> None:
         self.client = client
         self.normalizer = normalizer
         self.post_store = post_store
         self.output_mode = output_mode
+        self.test_mode = test_mode
 
     def run(
         self, max_posts: int, created_after: datetime | None = None
     ) -> list[NormalizedPost]:
-        logger.info("Collector starting.")
+        logger.info(
+            "Collector starting in %s mode.",
+            "test" if self.test_mode else "normal",
+        )
 
         raw_posts = self.client.fetch_latest_posts(max_posts, created_after=created_after)
         logger.info("Fetched %s posts from Truthbrush.", len(raw_posts))
@@ -44,14 +50,27 @@ class CollectorService:
                 created_after.isoformat(),
             )
 
-        new_posts = self.post_store.append_new_posts(relevant_posts)
-        logger.info("Detected %s new posts.", len(new_posts))
+        save_result = self._save_posts(relevant_posts)
+        new_posts = save_result.saved_posts
+        logger.info("%s posts were already in the database.", save_result.already_existing_count)
+        logger.info("%s new posts were saved.", save_result.saved_count)
+        logger.info("Detected %s new posts.", save_result.saved_count)
         if not new_posts:
-            logger.info("No new posts found; truth posts file was not rewritten.")
+            logger.info("No new posts were saved.")
 
         self._output(new_posts)
 
         return new_posts
+
+    def _save_posts(self, posts: list[NormalizedPost]) -> SavePostsResult:
+        if hasattr(self.post_store, "save_posts"):
+            return self.post_store.save_posts(posts)
+
+        saved_posts = self.post_store.append_new_posts(posts)
+        return SavePostsResult(
+            saved_posts=saved_posts,
+            already_existing_count=len(posts) - len(saved_posts),
+        )
 
     def _filter_by_created_at(
         self, posts: list[NormalizedPost], created_after: datetime | None

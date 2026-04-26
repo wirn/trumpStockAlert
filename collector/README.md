@@ -1,8 +1,8 @@
 # trumpStockAlert Collector
 
-Step 1 of `trumpStockAlert`: a small Python Collector that fetches recent public Truth Social posts from Donald Trump's account using [Truthbrush](https://github.com/stanfordio/truthbrush), normalizes them, filters duplicates, and prints new posts as formatted JSON.
+Step 1 of `trumpStockAlert`: a small Python Collector that fetches recent public Truth Social posts from Donald Trump's account using [Truthbrush](https://github.com/stanfordio/truthbrush), normalizes them, sends them to the backend API, and prints newly saved posts as formatted JSON.
 
-This is intentionally only the Collector. It does not include AI scoring, email alerts, database storage, a .NET API, Azure hosting, or a React dashboard yet.
+This is intentionally only the Collector. It does not include AI scoring, email alerts, Azure hosting, or a React dashboard yet.
 
 ## Project Structure
 
@@ -12,8 +12,9 @@ collector/
   main.py                Entry point
   models.py              Normalized post dataclass
   normalizer.py          Truthbrush raw post normalization
+  api_truth_post_store.py Backend API persistence
   service.py             Collector orchestration
-  truth_post_store.py    Local JSON truth_posts-style storage
+  truth_post_store.py    Optional local JSON fallback storage
   truth_social_client.py Truthbrush integration
 tests/
   test_normalizer.py
@@ -44,11 +45,13 @@ The Collector uses these environment variables:
 $env:TRUTH_SOCIAL_USERNAME="realDonaldTrump"
 $env:MAX_POSTS="10"
 $env:LOOKBACK_MINUTES="5"
+$env:COLLECTOR_STORE_MODE="api"
+$env:TRUTH_POST_API_BASE_URL="http://localhost:5044"
 $env:TRUTH_POSTS_FILE_PATH="./data/truth-posts.json"
 $env:OUTPUT_MODE="console"
 ```
 
-Defaults are already set for the values above, so you only need to set them when overriding behavior.
+Defaults are already set for the values above, so you only need to set them when overriding behavior. `COLLECTOR_STORE_MODE=api` persists through the .NET backend. Set `COLLECTOR_STORE_MODE=json` only if you want the old local JSON fallback. The local backend URL is HTTP on port `5044`; do not use `https://localhost:5044`.
 
 ## Run Locally
 
@@ -63,6 +66,8 @@ Test mode ignores the 5-minute window and fetches exactly the latest 1 post, reg
 ```powershell
 python -m collector.main --test
 ```
+
+Test mode still persists to the backend database. The backend handles duplicates by `(source, externalId)`, so rerunning test mode with the same latest post returns it as already existing instead of inserting it again.
 
 When new posts are found, the Collector prints them as formatted JSON:
 
@@ -81,19 +86,19 @@ When new posts are found, the Collector prints them as formatted JSON:
 ]
 ```
 
-If no new posts are found, the Collector logs that zero new posts were detected and prints no JSON payload.
+If no new posts are saved, the Collector logs how many fetched posts already existed and prints no JSON payload.
 
-## Local MVP Storage
+## Persistence
 
-Collected posts are stored locally in:
+By default, collected posts are sent to:
 
 ```text
-./data/truth-posts.json
+http://localhost:5044/api/truth-posts
 ```
 
-This file is the MVP stand-in for the future database table `truth_posts`. It contains a JSON array of normalized posts, including `collectedAt` and the original Truthbrush `raw` payload for debugging and later migration.
+The backend stores them in SQL Server table `truth_posts`. The API records `savedAtUtc` when the row is inserted into the database.
 
-Duplicate detection mimics the future database unique constraint by using the pair `(source, externalId)`. If no new posts are found, the file is not rewritten.
+Duplicate detection uses `(source, externalId)`, which maps to the external Truth Social post id rather than post text/content.
 
 ## Tests
 
