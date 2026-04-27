@@ -34,7 +34,23 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
 });
 builder.Services.AddScoped<ITruthPostService, TruthPostService>();
-builder.Services.AddScoped<IMarketImpactAnalyzer, MockMarketImpactAnalyzer>();
+builder.Services.AddScoped<MockMarketImpactAnalyzer>();
+builder.Services.AddScoped<OpenAiMarketImpactAnalyzer>();
+builder.Services.AddScoped<IMarketImpactAnalyzer>(serviceProvider =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var provider = configuration["Analyzer:Provider"];
+
+    if (string.Equals(provider, "OpenAI", StringComparison.OrdinalIgnoreCase))
+    {
+        return serviceProvider.GetRequiredService<OpenAiMarketImpactAnalyzer>();
+    }
+
+    return serviceProvider.GetRequiredService<MockMarketImpactAnalyzer>();
+});
+builder.Services.AddScoped<IPostAnalysisRunner, PostAnalysisRunner>();
+builder.Services.AddSingleton<MarketImpactPromptBuilder>();
+builder.Services.AddSingleton<MarketImpactAiResponseParser>();
 
 var app = builder.Build();
 

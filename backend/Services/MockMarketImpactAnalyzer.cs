@@ -87,18 +87,6 @@ public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
         var affectedAssets = GetAffectedAssets(content);
         var reasoning = GetReasoning(score, direction, highMatches, mediumMatches, lowMatches);
         var confidence = GetConfidence(isHighImpact, isMediumImpact, isLowImpact);
-        var rawAiResponse = JsonSerializer.Serialize(new
-        {
-            analyzer = Version,
-            mode = "mock",
-            matchedKeywords = new
-            {
-                highImpact = highMatches,
-                mediumImpact = mediumMatches,
-                lowImpact = lowMatches
-            }
-        });
-
         var result = new MarketImpactAnalysisResult
         {
             MarketImpactScore = score,
@@ -107,7 +95,14 @@ public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
             AffectedAssets = affectedAssets,
             Confidence = confidence,
             AnalyzerVersion = Version,
-            RawAiResponse = rawAiResponse
+            RawAiResponse = JsonResponseText.NormalizeObjectJson(JsonSerializer.Serialize(new
+            {
+                marketImpactScore = score,
+                direction,
+                reasoning,
+                affectedAssets,
+                confidence
+            }))
         };
 
         return Task.FromResult(result);

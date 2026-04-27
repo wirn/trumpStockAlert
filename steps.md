@@ -35,8 +35,8 @@ Reasoning
 AnalyzedAt
 AnalyzerVersion
 RawAiResponse
-3b. Mock Analyzer
 
+3b. Mock Analyzer
 Bygg en lokal fake-analyzer först:
 
 Om text innehåller "tariff", "China", "Fed" → score 7
@@ -46,15 +46,14 @@ Annars → score 4
 Målet är att testa hela flödet utan AI-kostnad.
 
 3c. Analyzer Worker
-
 Skapa en worker som:
 
 hämtar poster där AnalyzedAt är null
 analyserar dem
 sparar resultatet
 loggar vad som hände
-3d. Prompt + JSON-format
 
+3d. Prompt + JSON-format
 Bestäm exakt svar från AI:n, t.ex.
 
 {
@@ -62,8 +61,8 @@ Bestäm exakt svar från AI:n, t.ex.
   "reasoning": "Mentions tariffs and China, which may affect market expectations.",
   "affectedAssets": ["stocks", "USD", "China-related equities"]
 }
-3e. Riktig AI-koppling
 
+3e. Riktig AI-koppling
 Byt ut mocken mot riktig AI-klient:
 
 OpenAI / Azure OpenAI
