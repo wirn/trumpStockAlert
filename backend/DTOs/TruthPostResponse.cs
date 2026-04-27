@@ -25,6 +25,8 @@ public sealed class TruthPostResponse
 
     public JsonElement? Raw { get; init; }
 
+    public PostAnalysisResponse? Analysis { get; init; }
+
     public static TruthPostResponse FromEntity(TruthPost post)
     {
         return new TruthPostResponse
@@ -38,7 +40,10 @@ public sealed class TruthPostResponse
             CreatedAt = post.CreatedAt,
             CollectedAt = post.CollectedAt,
             SavedAtUtc = post.SavedAtUtc,
-            Raw = ParseRaw(post.RawJson)
+            Raw = ParseRaw(post.RawJson),
+            Analysis = post.Analysis is null
+                ? null
+                : PostAnalysisResponse.FromEntity(post.Analysis)
         };
     }
 

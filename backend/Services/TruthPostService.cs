@@ -80,6 +80,7 @@ public sealed class TruthPostService(
     {
         return await dbContext.TruthPosts
             .AsNoTracking()
+            .Include(post => post.Analysis)
             .OrderByDescending(post => post.CreatedAt)
             .Take(limit)
             .ToListAsync(cancellationToken);
@@ -89,6 +90,7 @@ public sealed class TruthPostService(
     {
         return dbContext.TruthPosts
             .AsNoTracking()
+            .Include(post => post.Analysis)
             .FirstOrDefaultAsync(post => post.Id == id, cancellationToken);
     }
 
@@ -98,6 +100,7 @@ public sealed class TruthPostService(
         CancellationToken cancellationToken)
     {
         return dbContext.TruthPosts
+            .Include(post => post.Analysis)
             .FirstOrDefaultAsync(
                 post => post.Source == source && post.ExternalId == externalId,
                 cancellationToken);

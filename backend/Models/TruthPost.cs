@@ -28,4 +28,8 @@ public sealed class TruthPost
     public DateTimeOffset SavedAtUtc { get; set; }
 
     public string? RawJson { get; set; }
+
+    public PostAnalysis? Analysis { get; set; }
+
+    public ICollection<Alert> Alerts { get; } = new List<Alert>();
 }
