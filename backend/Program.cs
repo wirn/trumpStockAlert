@@ -34,6 +34,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
 });
 builder.Services.AddScoped<ITruthPostService, TruthPostService>();
+builder.Services.AddScoped<IMarketImpactAnalyzer, MockMarketImpactAnalyzer>();
 
 var app = builder.Build();
 
