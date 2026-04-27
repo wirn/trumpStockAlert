@@ -10,6 +10,9 @@ public sealed class OpenAiMarketImpactAnalyzer(
     MarketImpactAiResponseParser responseParser,
     ILogger<OpenAiMarketImpactAnalyzer> logger) : IMarketImpactAnalyzer
 {
+    private const int DefaultTimeoutSeconds = 30;
+    private const int MaxAttempts = 3;
+
     public async Task<MarketImpactAnalysisResult> AnalyzeAsync(
         TruthPost post,
         CancellationToken cancellationToken = default)
@@ -28,6 +31,12 @@ public sealed class OpenAiMarketImpactAnalyzer(
                 "OpenAI model is missing. Configure 'OpenAI:Model', for example 'gpt-5.1-mini'.");
         }
 
+        var timeoutSeconds = configuration.GetValue("OpenAI:TimeoutSeconds", DefaultTimeoutSeconds);
+        if (timeoutSeconds < 1)
+        {
+            throw new InvalidOperationException("OpenAI timeout must be at least 1 second.");
+        }
+
         try
         {
             logger.LogInformation(
@@ -44,12 +53,11 @@ public sealed class OpenAiMarketImpactAnalyzer(
                 MaxOutputTokenCount = 600
             };
 
-            ChatCompletion completion = await client.CompleteChatAsync(
-                [
-                    new SystemChatMessage("You are a precise financial-market analysis assistant. Return only valid JSON."),
-                    new UserChatMessage(prompt)
-                ],
+            ChatCompletion completion = await CompleteChatWithRetryAsync(
+                client,
+                prompt,
                 options,
+                timeoutSeconds,
                 cancellationToken);
 
             var rawJson = completion.Content.Count > 0
@@ -114,5 +122,61 @@ public sealed class OpenAiMarketImpactAnalyzer(
                 post.ExternalId);
             throw;
         }
+    }
+
+    private async Task<ChatCompletion> CompleteChatWithRetryAsync(
+        ChatClient client,
+        string prompt,
+        ChatCompletionOptions options,
+        int timeoutSeconds,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutSource.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
+
+            try
+            {
+                return await client.CompleteChatAsync(
+                    [
+                        new SystemChatMessage("You are a precise financial-market analysis assistant. Return only valid JSON."),
+                        new UserChatMessage(prompt)
+                    ],
+                    options,
+                    timeoutSource.Token);
+            }
+            catch (ClientResultException exception) when (ShouldRetry(exception.Status, attempt))
+            {
+                logger.LogWarning(
+                    exception,
+                    "Transient OpenAI API error on attempt {Attempt}/{MaxAttempts}. Status: {Status}. Retrying.",
+                    attempt,
+                    MaxAttempts,
+                    exception.Status);
+
+                await Task.Delay(GetRetryDelay(attempt), cancellationToken);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException(
+                    $"OpenAI request timed out after {timeoutSeconds} seconds.");
+            }
+        }
+
+        throw new InvalidOperationException("OpenAI request failed after retry attempts.");
+    }
+
+    private static bool ShouldRetry(int statusCode, int attempt)
+    {
+        return attempt < MaxAttempts
+            && statusCode is 429 or 500 or 502 or 503 or 504;
+    }
+
+    private static TimeSpan GetRetryDelay(int attempt)
+    {
+        return TimeSpan.FromSeconds(attempt);
     }
 }
