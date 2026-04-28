@@ -1,4 +1,4 @@
-import type { AnalysisRunResult, CollectorTestRunResult, PostAnalysis, TruthPost } from '../types/api';
+import type { AnalysisRunResult, CollectorRunTestResult, CollectorTestRunResult, PostAnalysis, TruthPost } from '../types/api';
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const apiBaseUrl = (configuredBaseUrl?.trim() || 'http://localhost:5044').replace(/\/$/, '');
@@ -35,6 +35,10 @@ export async function runAnalysis(): Promise<AnalysisRunResult> {
 
 export async function runCollectorTest(): Promise<CollectorTestRunResult> {
   return requestJson<CollectorTestRunResult>('/api/collector/test-run', { method: 'POST' });
+}
+
+export async function runCollectorTestMode(): Promise<CollectorRunTestResult> {
+  return requestJson<CollectorRunTestResult>('/api/collector/run-test', { method: 'POST' });
 }
 
 export function getApiBaseUrl(): string {

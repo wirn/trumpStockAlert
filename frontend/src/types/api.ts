@@ -63,3 +63,15 @@ export interface CollectorTestRunResult {
   stdout: string;
   stderr: string;
 }
+
+export interface CollectorRunTestResult {
+  success: boolean;
+  message: string;
+  fetchedPosts?: number | null;
+  savedPosts?: number | null;
+  timestamp: string;
+  exitCode: number;
+  timedOut: boolean;
+  stdout: string;
+  stderr: string;
+}

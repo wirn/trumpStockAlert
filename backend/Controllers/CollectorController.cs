@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using TrumpStockAlert.Api.DTOs;
+using TrumpStockAlert.Api.Services;
 
 namespace TrumpStockAlert.Api.Controllers;
 
@@ -8,9 +8,38 @@ namespace TrumpStockAlert.Api.Controllers;
 [Route("api/collector")]
 public sealed class CollectorController(
     IWebHostEnvironment environment,
+    ICollectorTestRunner collectorTestRunner,
     ILogger<CollectorController> logger) : ControllerBase
 {
-    private static readonly TimeSpan CollectorTimeout = TimeSpan.FromSeconds(60);
+    [HttpPost("run-test")]
+    [ProducesResponseType(typeof(CollectorRunTestResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<CollectorRunTestResponse>> RunCollectorTestMode(
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await RunCollectorTestCore(cancellationToken);
+            return result is null
+                ? NotFound()
+                : Ok(CollectorRunTestResponse.FromResult(result));
+        }
+        catch (FileNotFoundException exception)
+        {
+            return Problem(
+                title: "Collector test script not found.",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return Problem(
+                title: "Collector test run failed.",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
+    }
 
     [HttpPost("test-run")]
     [ProducesResponseType(typeof(CollectorTestRunResponse), StatusCodes.Status200OK)]
@@ -19,106 +48,60 @@ public sealed class CollectorController(
     public async Task<ActionResult<CollectorTestRunResponse>> RunCollectorTest(
         CancellationToken cancellationToken)
     {
-        if (!environment.IsDevelopment())
-        {
-            return NotFound();
-        }
-
-        var scriptPath = Path.GetFullPath(
-            Path.Combine(environment.ContentRootPath, "..", "run-collector.ps1"));
-
-        if (!System.IO.File.Exists(scriptPath))
-        {
-            logger.LogError("Collector test script was not found at {ScriptPath}.", scriptPath);
-            return Problem(
-                title: "Collector test script not found.",
-                detail: $"Expected script at: {scriptPath}",
-                statusCode: StatusCodes.Status500InternalServerError);
-        }
-
-        var startedAt = DateTimeOffset.UtcNow;
-        logger.LogInformation("Starting collector test run using script {ScriptPath}.", scriptPath);
-
-        using var process = new Process
-        {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptPath}\" -Test",
-                WorkingDirectory = Path.GetDirectoryName(scriptPath) ?? environment.ContentRootPath,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            },
-            EnableRaisingEvents = true
-        };
-
         try
         {
-            process.Start();
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
-
-            using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutSource.CancelAfter(CollectorTimeout);
-
-            var timedOut = false;
-            try
-            {
-                await process.WaitForExitAsync(timeoutSource.Token);
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                timedOut = true;
-                logger.LogError(
-                    "Collector test run timed out after {TimeoutSeconds} seconds.",
-                    CollectorTimeout.TotalSeconds);
-
-                if (!process.HasExited)
+            var result = await RunCollectorTestCore(cancellationToken);
+            return result is null
+                ? NotFound()
+                : Ok(new CollectorTestRunResponse
                 {
-                    process.Kill(entireProcessTree: true);
-                    await process.WaitForExitAsync(CancellationToken.None);
-                }
-            }
-
-            var stdout = await stdoutTask;
-            var stderr = await stderrTask;
-            var finishedAt = DateTimeOffset.UtcNow;
-            var exitCode = timedOut ? -1 : process.ExitCode;
-            var success = !timedOut && exitCode == 0;
-
-            if (success)
-            {
-                logger.LogInformation("Collector test run completed successfully.");
-            }
-            else
-            {
-                logger.LogError(
-                    "Collector test run failed. ExitCode: {ExitCode}. TimedOut: {TimedOut}.",
-                    exitCode,
-                    timedOut);
-            }
-
-            return Ok(new CollectorTestRunResponse
-            {
-                StartedAt = startedAt,
-                FinishedAt = finishedAt,
-                ExitCode = exitCode,
-                Success = success,
-                TimedOut = timedOut,
-                Stdout = stdout,
-                Stderr = stderr
-            });
+                    StartedAt = result.StartedAt,
+                    FinishedAt = result.FinishedAt,
+                    ExitCode = result.ExitCode,
+                    Success = result.Success,
+                    TimedOut = result.TimedOut,
+                    Stdout = result.Stdout,
+                    Stderr = result.Stderr
+                });
+        }
+        catch (FileNotFoundException exception)
+        {
+            return Problem(
+                title: "Collector test script not found.",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status500InternalServerError);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            logger.LogError(exception, "Collector test run failed before completion.");
             return Problem(
                 title: "Collector test run failed.",
                 detail: exception.Message,
                 statusCode: StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    private async Task<CollectorTestRunResult?> RunCollectorTestCore(
+        CancellationToken cancellationToken)
+    {
+        if (!environment.IsDevelopment())
+        {
+            logger.LogWarning("Collector test run was requested outside Development and was rejected.");
+            return null;
+        }
+
+        try
+        {
+            return await collectorTestRunner.RunTestAsync(cancellationToken);
+        }
+        catch (FileNotFoundException exception)
+        {
+            logger.LogError(exception, "Collector test script was not found.");
+            throw;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(exception, "Collector test run failed before completion.");
+            throw;
         }
     }
 }
