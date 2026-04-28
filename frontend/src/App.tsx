@@ -1,7 +1,7 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
 import AdminPage from './pages/AdminPage';
 import DashboardPage from './pages/DashboardPage';
-import './index.scss';
+import './style/index.scss';
 
 function App() {
   return (

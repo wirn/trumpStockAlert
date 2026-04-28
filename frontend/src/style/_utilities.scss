@@ -1,0 +1,29 @@
+.notice {
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+.success-output {
+  border: 1px solid rgba(30, 76, 54, 0.22);
+}
+
+.error-output {
+  border: 1px solid rgba(114, 31, 25, 0.24);
+}
+
+.error {
+  color: #721f19;
+  background: #ffe1dc;
+}
+
+.success {
+  color: #1e4c36;
+  background: #daf2df;
+}
+
+.muted-panel,
+.empty-state {
+  color: #697266;
+}

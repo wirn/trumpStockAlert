@@ -1,0 +1,44 @@
+@use "variables" as *;
+
+:root {
+  color: $color-text;
+  background: $color-page;
+  font-family: $font-family-base;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(205, 73, 42, 0.16), transparent 34rem),
+    radial-gradient(circle at 90% 10%, rgba(38, 95, 80, 0.18), transparent 30rem),
+    linear-gradient(135deg, #f8f2e8 0%, #e8dfcf 100%);
+}
+
+button {
+  font: inherit;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: $color-primary-dark;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  max-width: 720px;
+  font-size: clamp(2.3rem, 6vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}

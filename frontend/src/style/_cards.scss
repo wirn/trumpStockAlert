@@ -1,0 +1,268 @@
+@use "variables" as *;
+
+.collector-output {
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: $color-surface-strong;
+
+  summary {
+    cursor: pointer;
+    font-weight: 900;
+  }
+
+  h3 {
+    margin: 14px 0 6px;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  pre {
+    max-height: 280px;
+    margin: 0;
+    overflow: auto;
+    padding: 12px;
+    border-radius: 12px;
+    color: #f7f0e6;
+    background: $color-text;
+    white-space: pre-wrap;
+  }
+}
+
+.collector-meta {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 12px 0 0;
+
+  dt {
+    color: #778072;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 4px 0 0;
+    font-weight: 800;
+  }
+}
+
+.stat-card {
+  padding: 18px;
+  border: 1px solid $color-border;
+  border-radius: 22px;
+  background: $color-surface-soft;
+
+  span {
+    display: block;
+    color: #677064;
+    font-size: 0.84rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  strong {
+    display: block;
+    margin-top: 10px;
+    font-size: 1.7rem;
+  }
+
+  &.hot strong {
+    color: $color-primary;
+  }
+}
+
+.post-card {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid $color-border;
+  border-radius: 26px;
+  background: $color-surface-strong;
+  box-shadow: 0 18px 44px $color-shadow;
+}
+
+.score-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 150px;
+  border-radius: 22px;
+  background: #efe7d8;
+}
+
+.score {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  color: $color-green-deep;
+  background: #d5e5d4;
+  font-size: 2rem;
+  font-weight: 900;
+
+  &.high {
+    color: #fff8ed;
+    background: $color-primary;
+    box-shadow: 0 16px 34px rgba(190, 70, 39, 0.27);
+  }
+
+  &.muted {
+    color: #8f968b;
+    background: #ddd6c8;
+  }
+}
+
+.direction {
+  padding: 7px 10px;
+  border-radius: $pill-radius;
+  color: $color-green-deep;
+  background: white;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+
+  &.negative {
+    color: #8b271d;
+    background: #ffd8d1;
+  }
+
+  &.positive {
+    color: #1d5e3c;
+    background: #cff0d7;
+  }
+
+  &.uncertain,
+  &.neutral,
+  &.pending {
+    color: #6b5a25;
+    background: #fff0bc;
+  }
+}
+
+.post-meta,
+.post-timestamps {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: #6b7469;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.content {
+  margin: 12px 0;
+  font-size: 1.05rem;
+  line-height: 1.58;
+  white-space: pre-wrap;
+}
+
+.media-status {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: fit-content;
+  margin: 0 0 12px;
+  padding: 7px 10px;
+  border-radius: $pill-radius;
+  color: #687165;
+  background: #ebe2d4;
+  font-size: 0.82rem;
+  font-weight: 900;
+
+  &.has-media {
+    color: #224f3f;
+    background: #dcecdf;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+.analysis-panel {
+  padding: 14px;
+  border-radius: 18px;
+  background: #f3eadb;
+}
+
+.reasoning {
+  margin: 0 0 12px;
+  color: #2d3a31;
+  line-height: 1.5;
+}
+
+.asset-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.asset {
+  padding: 6px 9px;
+  border-radius: $pill-radius;
+  color: $color-green;
+  background: #dcecdf;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+
+  dt {
+    color: #778072;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+    font-weight: 800;
+  }
+}
+
+.empty-state {
+  padding: 34px;
+  border-radius: 24px;
+  text-align: center;
+  background: rgba(255, 252, 245, 0.74);
+}
+
+.post-timestamps {
+  margin-top: 12px;
+}
+
+.admin-card {
+  min-height: 170px;
+  padding: 22px;
+  border: 1px solid $color-border;
+  border-radius: 24px;
+  background: $color-surface;
+  box-shadow: 0 18px 44px $color-shadow;
+
+  h2 {
+    margin: 0;
+    font-size: 1.35rem;
+  }
+
+  p {
+    margin: 12px 0 0;
+    color: $color-muted;
+    line-height: 1.5;
+  }
+}
