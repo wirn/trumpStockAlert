@@ -5,6 +5,12 @@ using TrumpStockAlert.Api.Services;
 namespace TrumpStockAlert.Api.Controllers;
 
 [ApiController]
+/// <summary>
+/// Returns collected Truth Social posts.
+/// </summary>
+/// <remarks>
+/// Used to verify that the collector has saved posts. Each post may include its latest analysis result if available.
+/// </remarks>
 [Route("api/truth-posts")]
 public sealed class TruthPostsController(
     ITruthPostService truthPostService,

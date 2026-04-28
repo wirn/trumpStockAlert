@@ -14,6 +14,13 @@ public sealed class AnalysisController(
     MarketImpactPromptBuilder promptBuilder,
     MarketImpactAiResponseParser responseParser) : ControllerBase
 {
+    /// <summary>
+    /// Runs a mock analysis for preview purposes.
+    /// </summary>
+    /// <remarks>
+    /// Does not call OpenAI and does not persist any data.
+    /// Useful for testing the analysis logic locally.
+    /// </remarks>
     [HttpPost("mock-preview")]
     [ProducesResponseType(typeof(MarketImpactAnalysisResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -42,6 +49,14 @@ public sealed class AnalysisController(
         return Ok(result);
     }
 
+    /// <summary>
+    /// Runs an OpenAI-powered analysis preview.
+    /// </summary>
+    /// <remarks>
+    /// Sends the provided content to OpenAI and returns a structured analysis.
+    /// Does not save anything to the database.
+    /// Useful for prompt tuning and AI validation.
+    /// </remarks>
     [HttpPost("openai-preview")]
     [ProducesResponseType(typeof(OpenAiAnalysisPreviewResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -78,6 +93,13 @@ public sealed class AnalysisController(
         }
     }
 
+    /// <summary>
+    /// Runs market-impact analysis for unprocessed posts.
+    /// </summary>
+    /// <remarks>
+    /// Finds posts without an analysis, analyzes them using the configured analyzer, and saves the results in the database.
+    /// Safe to run multiple times; already analyzed posts are skipped.
+    /// </remarks>
     [HttpPost("run")]
     [ProducesResponseType(typeof(PostAnalysisRunResult), StatusCodes.Status200OK)]
     public async Task<ActionResult<PostAnalysisRunResult>> RunAnalysis(
@@ -87,6 +109,13 @@ public sealed class AnalysisController(
         return Ok(result);
     }
 
+    /// <summary>
+    /// Generates the prompt sent to the AI analyzer.
+    /// </summary>
+    /// <remarks>
+    /// Useful for debugging and verifying how input content is transformed into an AI prompt.
+    /// Does not call OpenAI or persist data.
+    /// </remarks>
     [HttpPost("prompt-preview")]
     [ProducesResponseType(typeof(PromptPreviewResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -106,6 +135,13 @@ public sealed class AnalysisController(
         });
     }
 
+    /// <summary>
+    /// Parses a raw AI response into a structured format.
+    /// </summary>
+    /// <remarks>
+    /// Used to validate and debug parsing logic for AI responses.
+    /// Does not call OpenAI or persist data.
+    /// </remarks>
     [HttpPost("parse-preview")]
     [ProducesResponseType(typeof(ParsePreviewResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

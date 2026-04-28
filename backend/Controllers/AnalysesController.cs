@@ -6,6 +6,12 @@ using TrumpStockAlert.Api.DTOs;
 namespace TrumpStockAlert.Api.Controllers;
 
 [ApiController]
+/// <summary>
+/// Returns saved market-impact analyses.
+/// </summary>
+/// <remarks>
+/// Used to verify analysis results directly from the database, including score, direction, reasoning, confidence, and analyzer version.
+/// </remarks>
 [Route("api/analyses")]
 public sealed class AnalysesController(AppDbContext dbContext) : ControllerBase
 {

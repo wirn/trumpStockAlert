@@ -11,6 +11,13 @@ public sealed class CollectorController(
     ICollectorTestRunner collectorTestRunner,
     ILogger<CollectorController> logger) : ControllerBase
 {
+    /// <summary>
+    /// Runs the collector in test mode.
+    /// </summary>
+    /// <remarks>
+    /// Fetches a one Truth Social post and stores it in the database.
+    /// This endpoint is intended for local development/testing only.
+    /// </remarks>
     [HttpPost("run-test")]
     [ProducesResponseType(typeof(CollectorRunTestResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
