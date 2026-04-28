@@ -16,3 +16,5 @@ backend/data/*.db-wal
 
 collector/.venv/
 collector/data/*.json
+
+info.md

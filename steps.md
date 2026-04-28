@@ -86,6 +86,8 @@ Collector hämtar nya poster
 Analyzer analyserar oanalyserade poster
 API visar resultat
 
-Jag hade alltså byggt i denna ordning:
-
-3a → 3b → 3c → 3d → 3e → 3f → 3g
+	3g1. Flytta DB till Azure SQL
+	3g2. Deploya backend till Azure App Service
+	3g3. Deploya frontend
+	3g4. Verifiera att allt funkar manuellt i Azure
+	3g5. Bygg 5-minuterskörning som Azure Function
