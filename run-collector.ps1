@@ -1,5 +1,6 @@
 param(
-    [switch]$Test
+    [switch]$Test,
+    [switch]$SkipLookback
 )
 
 $originalLocation = Get-Location
@@ -15,6 +16,10 @@ try {
 
     if ($Test) {
         $argsToPass += "--test"
+    }
+
+    if ($SkipLookback) {
+        $argsToPass += "--skip-lookback"
     }
 
     & ".\.venv\Scripts\python.exe" -m collector.main @argsToPass

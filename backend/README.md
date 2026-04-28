@@ -66,6 +66,14 @@ In Azure Portal, use an Application Setting named:
 ConnectionStrings__DefaultConnection
 ```
 
+The production collector endpoint also requires an API key. Configure it in Azure App Service as:
+
+```text
+Collector__ApiKey
+```
+
+Do not store the real value in source control. Optional collector settings use the same double-underscore convention, for example `Collector__MaxPosts`, `Collector__LookbackMinutes`, and `Collector__BackendBaseUrl`.
+
 Prefer managed identity for production when you wire up Azure SQL authentication later. If using SQL credentials, store them in Azure app settings or Key Vault, never in source control.
 
 ## Migrations
@@ -191,3 +199,19 @@ Invoke-RestMethod "http://localhost:5044/api/truth-posts/1"
 ## Collector Integration
 
 The Python Collector sends newly fetched posts to `POST /api/truth-posts` in both normal mode and `--test` mode. Test mode only changes fetching behavior; it does not skip database persistence.
+
+### POST `/api/collector/run`
+
+Runs the production-safe collector flow. It uses the same Truthbrush-based fetch path as the development test collector, fetches the latest configured number of Truth Social posts, saves new rows to `dbo.truth_posts`, skips duplicates by `ExternalId`, and does not run AI analysis or alert logic.
+
+Required header:
+
+```text
+x-api-key: <Collector__ApiKey>
+```
+
+This endpoint is intended for scheduled execution, such as an Azure Function Timer Trigger every 5 minutes.
+
+### POST `/api/collector/run-test`
+
+Development-only local test endpoint. It remains separate from the production collector endpoint and does not require the production API key.

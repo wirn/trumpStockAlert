@@ -63,7 +63,9 @@ builder.Services.AddScoped<IMarketImpactAnalyzer>(serviceProvider =>
     return serviceProvider.GetRequiredService<MockMarketImpactAnalyzer>();
 });
 builder.Services.AddScoped<IPostAnalysisRunner, PostAnalysisRunner>();
+builder.Services.AddScoped<ICollectorProcessRunner, CollectorProcessRunner>();
 builder.Services.AddScoped<ICollectorTestRunner, CollectorTestRunner>();
+builder.Services.AddScoped<ICollectorRunner, CollectorRunner>();
 builder.Services.AddSingleton<MarketImpactPromptBuilder>();
 builder.Services.AddSingleton<MarketImpactAiResponseParser>();
 

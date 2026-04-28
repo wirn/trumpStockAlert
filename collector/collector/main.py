@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -23,14 +23,19 @@ def configure_logging() -> None:
     )
 
 
-def parse_args(argv: list[str] | None = None) -> bool:
+def parse_args(argv: list[str] | None = None) -> Namespace:
     parser = ArgumentParser(description="Run the trumpStockAlert Collector.")
     parser.add_argument(
         "--test",
         action="store_true",
         help="Fetch exactly the latest 1 post and skip the lookback time filter.",
     )
-    return parser.parse_args(argv).test
+    parser.add_argument(
+        "--skip-lookback",
+        action="store_true",
+        help="Fetch the latest configured number of posts without applying the lookback time filter.",
+    )
+    return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,12 +43,18 @@ def main(argv: list[str] | None = None) -> int:
     logger = logging.getLogger(__name__)
 
     try:
-        test_mode = parse_args(argv)
+        args = parse_args(argv)
+        test_mode = args.test
         config = CollectorConfig.from_env()
         max_posts = 1 if test_mode else config.max_posts
         created_after = None
         if test_mode:
             logger.info("Collector running in test mode.")
+        elif args.skip_lookback:
+            logger.info(
+                "Collector running in normal mode without UTC lookback. Fetching latest %s post(s).",
+                max_posts,
+            )
         else:
             created_after = datetime.now(UTC) - timedelta(
                 minutes=config.lookback_minutes
