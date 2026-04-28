@@ -2,7 +2,7 @@
 
 :root {
   color: $color-text;
-  background: $color-page;
+  background: $color-background;
   font-family: $font-family-base;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -16,29 +16,49 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(205, 73, 42, 0.16), transparent 34rem),
-    radial-gradient(circle at 90% 10%, rgba(38, 95, 80, 0.18), transparent 30rem),
-    linear-gradient(135deg, #f8f2e8 0%, #e8dfcf 100%);
+  background: $color-background;
 }
 
-button {
+button,
+input,
+select {
   font: inherit;
 }
 
-.eyebrow {
-  margin: 0 0 8px;
-  color: $color-primary-dark;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+button,
+a {
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
 }
 
 h1 {
-  margin: 0;
-  max-width: 720px;
-  font-size: clamp(2.3rem, 6vw, 5rem);
-  line-height: 0.95;
-  letter-spacing: -0.07em;
+  margin-bottom: 0;
+  color: $color-text-strong;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: $color-primary;
+  font-family: $font-family-label;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }

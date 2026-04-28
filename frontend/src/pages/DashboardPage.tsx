@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { getAnalyses, getApiBaseUrl, getTruthPosts, runAnalysis, runCollectorTest } from '../api/client';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { getAnalyses, getTruthPosts, runAnalysis, runCollectorTest } from '../api/client';
 import type { AnalysisRunResult, CollectorTestRunResult, PostAnalysis, TruthPost } from '../types/api';
 
 type Filter = 'all' | 'high' | 'not-analyzed' | 'negative' | 'positive' | 'uncertain-neutral';
@@ -8,8 +8,8 @@ const filters: Array<{ id: Filter; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'high', label: 'High impact' },
   { id: 'not-analyzed', label: 'Not analyzed' },
-  { id: 'negative', label: 'Negative' },
   { id: 'positive', label: 'Positive' },
+  { id: 'negative', label: 'Negative' },
   { id: 'uncertain-neutral', label: 'Uncertain / Neutral' },
 ];
 
@@ -80,14 +80,11 @@ function DashboardPage() {
 
   return (
     <main className="app-shell">
-      <section className="hero">
+      <section className="page-heading">
         <div>
-          <p className="eyebrow">TrumpStockAlert</p>
+          <p className="eyebrow">Analytics / Dashboard</p>
           <h1>Market Impact Dashboard</h1>
-          <p className="hero-copy">
-            Saved Truth Social posts paired with local AI analysis, ranked by potential market impact.
-          </p>
-          <p className="api-note">API: {getApiBaseUrl()}</p>
+          <p className="hero-copy">Saved Truth Social posts paired with local AI analysis, ranked by potential market impact.</p>
         </div>
         <div className="actions">
           <button type="button" className="button secondary" onClick={() => void refreshData()} disabled={loading || running || collectorRunning}>
@@ -107,23 +104,30 @@ function DashboardPage() {
       {collectorResult && <CollectorRunOutput result={collectorResult} />}
 
       <section className="stats-grid" aria-label="Dashboard summary">
-        <StatCard label="Total posts" value={stats.totalPosts} />
-        <StatCard label="Analyzed posts" value={stats.analyzedPosts} />
-        <StatCard label="High impact" value={stats.highImpactPosts} tone="hot" />
-        <StatCard label="Latest analyzed" value={stats.latestAnalyzedAt ? formatDate(stats.latestAnalyzedAt) : 'Not yet'} />
+        <StatCard label="Total collected" value={stats.totalPosts} meta="Stored posts" />
+        <StatCard label="Analyzed posts" value={stats.analyzedPosts} meta={`${stats.analysisCompletion}% complete`} />
+        <StatCard label="High impact" value={stats.highImpactPosts} meta="Score >= 70" tone="hot" />
+        <StatCard label="Latest analysis" value={stats.latestAnalyzedAt ? formatRelativeTime(stats.latestAnalyzedAt) : 'Not yet'} meta="API status: active" />
+        <StatCard label="Avg impact score" value={stats.averageImpactScore} meta="Analyzed posts" progress={stats.averageImpactScore} />
       </section>
 
-      <section className="toolbar" aria-label="Filters">
-        {filters.map((item) => (
-          <button
-            type="button"
-            key={item.id}
-            className={filter === item.id ? 'filter active' : 'filter'}
-            onClick={() => setFilter(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
+      <section className="toolbar" aria-label="Dashboard controls">
+        <div className="filter-group" aria-label="Filters">
+          {filters.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              className={filter === item.id ? `filter active ${item.id}` : `filter ${item.id}`}
+              onClick={() => setFilter(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="sort-label">
+          <span>Sort by:</span>
+          <strong>Highest score</strong>
+        </div>
       </section>
 
       {loading ? (
@@ -145,7 +149,7 @@ function CollectorRunOutput({ result }: { result: CollectorTestRunResult }) {
   return (
     <details className={result.success ? 'collector-output success-output' : 'collector-output error-output'} open>
       <summary>
-        Collector test {result.success ? 'succeeded' : 'failed'} · exit code {result.exitCode}
+        Collector test {result.success ? 'succeeded' : 'failed'} - exit code {result.exitCode}
       </summary>
       <dl className="collector-meta">
         <div>
@@ -188,11 +192,17 @@ function getStats(posts: TruthPost[]) {
     .filter((date): date is string => Boolean(date))
     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
 
+  const averageImpactScore = analyzed.length
+    ? Math.round(analyzed.reduce((sum, post) => sum + (post.analysis?.marketImpactScore ?? 0), 0) / analyzed.length)
+    : 0;
+
   return {
     totalPosts: posts.length,
     analyzedPosts: analyzed.length,
     highImpactPosts: analyzed.filter((post) => (post.analysis?.marketImpactScore ?? 0) >= 70).length,
     latestAnalyzedAt,
+    analysisCompletion: posts.length ? Math.round((analyzed.length / posts.length) * 100) : 0,
+    averageImpactScore,
   };
 }
 
@@ -216,11 +226,24 @@ function filterAndSortPosts(posts: TruthPost[], filter: Filter): TruthPost[] {
     });
 }
 
-function StatCard({ label, value, tone }: { label: string; value: string | number; tone?: 'hot' }) {
+function StatCard({
+  label,
+  value,
+  meta,
+  tone,
+  progress,
+}: {
+  label: string;
+  value: string | number;
+  meta: string;
+  tone?: 'hot';
+  progress?: number;
+}) {
   return (
     <article className={tone === 'hot' ? 'stat-card hot' : 'stat-card'}>
       <span>{label}</span>
       <strong>{value}</strong>
+      {progress === undefined ? <small>{meta}</small> : <span className="progress-meter" style={{ '--progress': `${progress}%` } as CSSProperties} />}
     </article>
   );
 }
@@ -228,75 +251,60 @@ function StatCard({ label, value, tone }: { label: string; value: string | numbe
 function PostCard({ post }: { post: TruthPost }) {
   const analysis = post.analysis;
   const affectedAssets = parseAffectedAssets(analysis?.affectedAssetsJson);
+  const direction = analysis?.direction.toLowerCase() ?? 'pending';
+  const score = analysis?.marketImpactScore ?? 0;
 
   return (
-    <article className="post-card">
-      <div className="score-column">
-        {analysis ? (
-          <>
-            <span className={analysis.marketImpactScore >= 70 ? 'score high' : 'score'}>
-              {analysis.marketImpactScore}
-            </span>
-            <span className={`direction ${analysis.direction.toLowerCase()}`}>{analysis.direction}</span>
-          </>
-        ) : (
-          <>
-            <span className="score muted">--</span>
-            <span className="direction pending">Not analyzed</span>
-          </>
-        )}
-      </div>
-
+    <article className={`post-card ${direction}`}>
       <div className="post-body">
         <div className="post-meta">
+          <span className="source-badge" aria-hidden="true">TS</span>
           <span>{post.source}</span>
-          <span>External ID: {post.externalId}</span>
           <span>Posted: {formatDate(post.createdAt)}</span>
+          <span>ID: {post.externalId}</span>
         </div>
 
         <p className="content">{post.content}</p>
-
-        <div className={post.hasImage ? 'media-status has-media' : 'media-status'}>
-          <span>{post.hasImage ? 'Contains image' : 'No image'}</span>
-          {post.imageUrls[0] && (
-            <a href={post.imageUrls[0]} target="_blank" rel="noreferrer">
-              Open image URL
-            </a>
-          )}
-        </div>
-
         {analysis ? (
           <div className="analysis-panel">
-            <p className="reasoning">{analysis.reasoning}</p>
             <div className="asset-row">
+              <span className={`direction ${direction}`}>{analysis.direction} direction</span>
+              <span className="asset confidence">Confidence: {analysis.confidence ?? 'n/a'}%</span>
               {affectedAssets.map((asset) => (
                 <span className="asset" key={asset}>{asset}</span>
               ))}
             </div>
-            <dl className="detail-grid">
-              <div>
-                <dt>Confidence</dt>
-                <dd>{analysis.confidence ?? 'n/a'}</dd>
-              </div>
-              <div>
-                <dt>Analyzed</dt>
-                <dd>{formatDate(analysis.analyzedAt)}</dd>
-              </div>
-              <div>
-                <dt>Analyzer</dt>
-                <dd>{analysis.analyzerVersion}</dd>
-              </div>
-            </dl>
           </div>
         ) : (
-          <div className="analysis-panel muted-panel">Run analysis to score this post.</div>
+          <div className="analysis-panel muted-panel">
+            <span className="direction pending">Not analyzed</span>
+            <span className="asset">Run analysis to score this post</span>
+          </div>
         )}
-
-        <div className="post-timestamps">
-          <span>Collected: {formatDate(post.collectedAt)}</span>
-          <span>Saved: {formatDate(post.savedAtUtc)}</span>
-        </div>
       </div>
+
+      <aside className="score-column">
+        <span>Impact score</span>
+        <div className={`score-ring ${direction}`} style={{ '--score': `${score}%` } as CSSProperties}>
+          <strong>{analysis ? score : '--'}</strong>
+          <small>/ 100</small>
+        </div>
+      </aside>
+
+      <footer className="post-footer">
+        <p>
+          <span>AI reasoning:</span>{' '}
+          {analysis ? analysis.reasoning : 'Analysis is pending for this post.'}
+        </p>
+        <div className="post-footer-actions">
+          {analysis && <span className="analyzer-badge">Analyzer: {analysis.analyzerVersion}</span>}
+          {post.imageUrls[0] && (
+            <a href={post.imageUrls[0]} target="_blank" rel="noreferrer" className="media-link">
+              Image
+            </a>
+          )}
+        </div>
+      </footer>
     </article>
   );
 }
@@ -321,6 +329,19 @@ function formatDate(value: string): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function formatRelativeTime(value: string): string {
+  const deltaSeconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
+  if (deltaSeconds < 60) return `${deltaSeconds}s ago`;
+
+  const deltaMinutes = Math.round(deltaSeconds / 60);
+  if (deltaMinutes < 60) return `${deltaMinutes}m ago`;
+
+  const deltaHours = Math.round(deltaMinutes / 60);
+  if (deltaHours < 24) return `${deltaHours}h ago`;
+
+  return formatDate(value);
 }
 
 export default DashboardPage;

@@ -1,0 +1,34 @@
+@use "variables" as *;
+
+.search-field {
+  position: relative;
+  display: block;
+
+  span {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    color: $color-text-subtle;
+    transform: translateY(-50%);
+  }
+
+  input {
+    width: min(320px, 28vw);
+    min-height: 38px;
+    padding: 0 14px 0 42px;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    color: $color-text;
+    background: $color-surface-high;
+
+    &::placeholder {
+      color: $color-text-subtle;
+    }
+
+    &:focus {
+      border-color: $color-primary;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+    }
+  }
+}

@@ -1,70 +1,109 @@
 @use "variables" as *;
 
 .app-shell {
-  width: $content-width;
-  margin: 0 auto;
-  padding: 18px 0 48px;
+  min-height: 100vh;
+  margin-left: $sidebar-width;
+  padding: calc($topbar-height + $space-container) $space-container
+    $space-container;
+  background: $color-background;
 }
 
-.hero {
-  display: grid;
-  grid-template-columns: 1fr auto;
+.app-shell > * {
+  max-width: $content-max-width;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
   gap: 24px;
-  align-items: end;
-  padding: 30px;
-  border: 1px solid $color-border-strong;
-  border-radius: 28px;
-  background: $color-surface;
-  box-shadow: 0 24px 70px $color-shadow-strong;
-  backdrop-filter: blur(16px);
+  padding-bottom: 16px;
 }
 
 .hero-copy {
-  max-width: 660px;
-  margin: 18px 0 0;
-  color: $color-muted;
-  font-size: 1.08rem;
-}
-
-.api-note {
-  margin: 14px 0 0;
-  color: $color-muted-light;
-  font-size: 0.88rem;
+  max-width: 720px;
+  margin: 8px 0 0;
+  color: $color-text-muted;
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
 .actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 18px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: $space-card-gap;
+  margin-top: 4px;
 }
 
 .toolbar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+  padding: 14px;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin: 22px 0;
+}
+
+.sort-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: $color-text;
+  white-space: nowrap;
+
+  span {
+    color: $color-text-subtle;
+    font-family: $font-family-label;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
 }
 
 .post-list {
   display: grid;
-  gap: 16px;
+  gap: $space-card-gap;
 }
 
-.admin-hero {
-  align-items: center;
+.admin-heading {
+  border-bottom: 1px solid rgba(66, 71, 84, 0.45);
 }
 
 .admin-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: $space-card-gap;
   margin-top: 18px;
+}
+
+.admin-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-card-gap;
+}
+
+.admin-side-panels {
+  display: grid;
+  gap: $space-card-gap;
 }

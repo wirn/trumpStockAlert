@@ -1,0 +1,879 @@
+<!doctype html>
+
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>TrumpStockAlert Terminal</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Work+Sans:wght@600&amp;family=Space+Grotesk:wght@500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "inverse-surface": "#dae2fd",
+              surface: "#0b1326",
+              "surface-container-high": "#222a3d",
+              "secondary-fixed": "#d8e3fb",
+              "secondary-container": "#3e495d",
+              "error-container": "#93000a",
+              "on-secondary-fixed-variant": "#3c475a",
+              "on-secondary": "#263143",
+              "outline-variant": "#424754",
+              "on-background": "#dae2fd",
+              "surface-variant": "#2d3449",
+              "primary-fixed-dim": "#adc6ff",
+              "inverse-on-surface": "#283044",
+              "surface-container-highest": "#2d3449",
+              "on-tertiary-fixed-variant": "#723600",
+              "on-secondary-container": "#aeb9d0",
+              "surface-container": "#171f33",
+              "tertiary-fixed": "#ffdcc6",
+              background: "#0b1326",
+              error: "#ffb4ab",
+              "surface-bright": "#31394d",
+              "surface-dim": "#0b1326",
+              "on-surface": "#dae2fd",
+              "inverse-primary": "#005ac2",
+              "on-tertiary": "#502400",
+              "primary-container": "#4d8eff",
+              "secondary-fixed-dim": "#bcc7de",
+              "surface-container-low": "#131b2e",
+              "surface-container-lowest": "#060e20",
+              "on-tertiary-container": "#461f00",
+              primary: "#adc6ff",
+              tertiary: "#ffb786",
+              "on-error": "#690005",
+              "on-error-container": "#ffdad6",
+              "on-primary-fixed-variant": "#004395",
+              "on-surface-variant": "#c2c6d6",
+              "on-secondary-fixed": "#111c2d",
+              "primary-fixed": "#d8e2ff",
+              "tertiary-fixed-dim": "#ffb786",
+              "on-primary": "#002e6a",
+              "on-tertiary-fixed": "#311400",
+              "on-primary-container": "#00285d",
+              "surface-tint": "#adc6ff",
+              "on-primary-fixed": "#001a42",
+              outline: "#8c909f",
+            },
+            borderRadius: {
+              DEFAULT: "0.125rem",
+              lg: "0.25rem",
+              xl: "0.5rem",
+              full: "0.75rem",
+            },
+            spacing: {
+              "grid-gutter": "16px",
+              "card-gap": "12px",
+              "widget-internal": "8px",
+              unit: "4px",
+              "container-padding": "24px",
+            },
+            fontFamily: {
+              "body-main": ["Inter"],
+              "label-caps": ["Work Sans"],
+              "display-lg": ["Inter"],
+              "data-mono": ["Space Grotesk"],
+              "headline-md": ["Inter"],
+            },
+            fontSize: {
+              "body-main": [
+                "14px",
+                { lineHeight: "20px", letterSpacing: "0em", fontWeight: "400" },
+              ],
+              "label-caps": [
+                "11px",
+                {
+                  lineHeight: "12px",
+                  letterSpacing: "0.06em",
+                  fontWeight: "600",
+                },
+              ],
+              "display-lg": [
+                "30px",
+                {
+                  lineHeight: "38px",
+                  letterSpacing: "-0.02em",
+                  fontWeight: "600",
+                },
+              ],
+              "data-mono": [
+                "14px",
+                {
+                  lineHeight: "16px",
+                  letterSpacing: "0.02em",
+                  fontWeight: "500",
+                },
+              ],
+              "headline-md": [
+                "20px",
+                {
+                  lineHeight: "28px",
+                  letterSpacing: "-0.01em",
+                  fontWeight: "600",
+                },
+              ],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        background-color: #0b1326;
+        color: #dae2fd;
+      }
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      .glass-panel {
+        background: rgba(30, 41, 59, 0.4);
+        backdrop-filter: blur(8px);
+      }
+      .glow-emerald {
+        box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.2);
+      }
+      .glow-rose {
+        box-shadow: 0 0 15px -3px rgba(244, 63, 94, 0.2);
+      }
+    </style>
+  </head>
+  <body class="font-body-main text-body-main selection:bg-primary-container/30">
+    <!-- SideNavBar -->
+    <aside
+      class="fixed left-0 top-0 bottom-0 w-64 border-r border-[#1E293B] bg-[#0F172A] flex flex-col h-full z-50"
+    >
+      <div class="p-6">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-[#3B82F6] font-black text-xl tracking-tighter"
+            >Terminal</span
+          >
+          <span
+            class="px-1.5 py-0.5 rounded text-[10px] bg-[#1E293B] text-[#3B82F6] font-bold border border-[#3B82F6]/30"
+            >PRO</span
+          >
+        </div>
+        <p
+          class="text-slate-500 font-medium text-[10px] uppercase tracking-widest"
+        >
+          v2.4.0-stable
+        </p>
+      </div>
+      <nav class="flex-1 space-y-1">
+        <a
+          class="flex items-center gap-3 px-4 py-3 text-[#3B82F6] bg-[#1E293B] border-r-2 border-[#3B82F6] transition-all duration-200"
+          href="#"
+        >
+          <span class="material-symbols-outlined" data-icon="dashboard"
+            >dashboard</span
+          >
+          <span class="font-medium">Dashboard</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B]/50 transition-all duration-200"
+          href="#"
+        >
+          <span
+            class="material-symbols-outlined"
+            data-icon="admin_panel_settings"
+            >admin_panel_settings</span
+          >
+          <span class="font-medium">Admin</span>
+        </a>
+      </nav>
+      <div class="mt-auto border-t border-[#1E293B]">
+        <a
+          class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B]/50 transition-all duration-200"
+          href="#"
+        >
+          <span class="material-symbols-outlined" data-icon="settings"
+            >settings</span
+          >
+          <span class="font-medium">Settings</span>
+        </a>
+        <a
+          class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B]/50 transition-all duration-200"
+          href="#"
+        >
+          <span class="material-symbols-outlined" data-icon="menu_book"
+            >menu_book</span
+          >
+          <span class="font-medium">Documentation</span>
+        </a>
+        <div class="p-4 bg-[#1E293B]/30 m-4 rounded-lg border border-[#334155]">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
+            ></div>
+            <span class="text-xs font-semibold text-slate-300"
+              >SYSTEM OPERATIONAL</span
+            >
+          </div>
+        </div>
+      </div>
+    </aside>
+    <!-- TopAppBar -->
+    <header
+      class="fixed top-0 right-0 left-64 h-16 flex items-center justify-between px-6 z-40 bg-[#0F172A] border-b border-[#1E293B] border-opacity-50"
+    >
+      <div class="flex items-center gap-4">
+        <h1 class="text-lg font-bold tracking-tighter text-slate-50 uppercase">
+          TrumpStockAlert
+        </h1>
+        <div class="h-4 w-[1px] bg-slate-700"></div>
+        <nav class="flex gap-4">
+          <span class="text-xs font-semibold text-[#3B82F6]"
+            >Live Terminal</span
+          >
+          <span class="text-xs font-semibold text-slate-400"
+            >Market Overview</span
+          >
+        </nav>
+      </div>
+      <div class="flex items-center gap-6">
+        <div class="relative group">
+          <span
+            class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-500 text-lg"
+            data-icon="search"
+            >search</span
+          >
+          <input
+            class="bg-[#1E293B] border-none text-xs rounded-full pl-10 pr-4 py-1.5 w-64 focus:ring-1 focus:ring-[#3B82F6] transition-all"
+            placeholder="Search signals..."
+            type="text"
+          />
+        </div>
+        <div class="flex items-center gap-3">
+          <button
+            class="p-2 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B] rounded-full transition-colors"
+          >
+            <span
+              class="material-symbols-outlined text-xl"
+              data-icon="notifications"
+              >notifications</span
+            >
+          </button>
+          <button
+            class="p-2 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B] rounded-full transition-colors"
+          >
+            <span class="material-symbols-outlined text-xl" data-icon="history"
+              >history</span
+            >
+          </button>
+          <div
+            class="w-8 h-8 rounded-full bg-[#3B82F6] flex items-center justify-center text-white font-bold text-xs cursor-pointer active:opacity-80"
+          >
+            EB
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- Main Canvas -->
+    <main class="pl-64 pt-16 min-h-screen bg-[#0b1326]">
+      <div class="p-6 max-w-[1440px] mx-auto space-y-6">
+        <!-- Breadcrumbs -->
+        <div
+          class="flex items-center gap-2 text-[10px] font-semibold text-slate-500 uppercase tracking-widest"
+        >
+          <span>Analytics</span>
+          <span
+            class="material-symbols-outlined text-[12px]"
+            data-icon="chevron_right"
+            >chevron_right</span
+          >
+          <span class="text-[#3B82F6]">Dashboard</span>
+        </div>
+        <!-- Key Stats Row -->
+        <div class="grid grid-cols-5 gap-card-gap">
+          <!-- Stat 1 -->
+          <div
+            class="bg-[#1E293B] border border-[#334155] p-widget-internal rounded"
+          >
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-label-caps text-slate-400"
+                >TOTAL COLLECTED</span
+              >
+              <span
+                class="material-symbols-outlined text-slate-500 text-sm"
+                data-icon="dataset"
+                >dataset</span
+              >
+            </div>
+            <div class="font-data-mono text-display-lg text-slate-50">
+              1,284
+            </div>
+            <div
+              class="text-[10px] text-emerald-400 flex items-center gap-1 mt-1 font-semibold"
+            >
+              <span
+                class="material-symbols-outlined text-[12px]"
+                data-icon="trending_up"
+                >trending_up</span
+              >
+              +12.5% vs LW
+            </div>
+          </div>
+          <!-- Stat 2 -->
+          <div
+            class="bg-[#1E293B] border border-[#334155] p-widget-internal rounded"
+          >
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-label-caps text-slate-400">ANALYZED POSTS</span>
+              <span
+                class="material-symbols-outlined text-slate-500 text-sm"
+                data-icon="psychology"
+                >psychology</span
+              >
+            </div>
+            <div class="font-data-mono text-display-lg text-slate-50">
+              1,150
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1 font-semibold">
+              89.5% COMPLETE
+            </div>
+          </div>
+          <!-- Stat 3 -->
+          <div
+            class="bg-[#1E293B] border border-[#334155] p-widget-internal rounded relative overflow-hidden"
+          >
+            <div class="absolute inset-0 bg-[#3B82F6]/5"></div>
+            <div class="flex justify-between items-start mb-2 relative z-10">
+              <span class="text-label-caps text-slate-400">HIGH IMPACT</span>
+              <span
+                class="material-symbols-outlined text-[#3B82F6] text-sm"
+                data-icon="bolt"
+                >bolt</span
+              >
+            </div>
+            <div
+              class="font-data-mono text-display-lg text-[#3B82F6] relative z-10"
+            >
+              42
+            </div>
+            <div
+              class="text-[10px] text-slate-400 mt-1 font-semibold relative z-10"
+            >
+              LAST 24 HOURS
+            </div>
+          </div>
+          <!-- Stat 4 -->
+          <div
+            class="bg-[#1E293B] border border-[#334155] p-widget-internal rounded"
+          >
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-label-caps text-slate-400"
+                >LATEST ANALYSIS</span
+              >
+              <span
+                class="material-symbols-outlined text-slate-500 text-sm"
+                data-icon="schedule"
+                >schedule</span
+              >
+            </div>
+            <div class="font-data-mono text-display-lg text-slate-50">
+              2m ago
+            </div>
+            <div
+              class="text-[10px] text-slate-400 mt-1 font-semibold uppercase"
+            >
+              API STATUS: ACTIVE
+            </div>
+          </div>
+          <!-- Stat 5 -->
+          <div
+            class="bg-[#1E293B] border border-[#334155] p-widget-internal rounded"
+          >
+            <div class="flex justify-between items-start mb-2">
+              <span class="text-label-caps text-slate-400"
+                >AVG IMPACT SCORE</span
+              >
+              <span
+                class="material-symbols-outlined text-slate-500 text-sm"
+                data-icon="analytics"
+                >analytics</span
+              >
+            </div>
+            <div class="font-data-mono text-display-lg text-slate-50">68</div>
+            <div
+              class="w-full bg-slate-700 h-1 rounded-full mt-2 overflow-hidden"
+            >
+              <div class="bg-primary h-full w-[68%]"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Controls Row -->
+        <div
+          class="bg-[#171f33] border border-[#334155] p-3 rounded flex items-center justify-between"
+        >
+          <div class="flex items-center gap-2">
+            <button
+              class="px-3 py-1.5 rounded bg-primary text-on-primary text-xs font-semibold"
+            >
+              All
+            </button>
+            <button
+              class="px-3 py-1.5 rounded border border-[#334155] text-slate-400 text-xs font-semibold hover:border-slate-500 transition-colors"
+            >
+              High Impact
+            </button>
+            <button
+              class="px-3 py-1.5 rounded border border-[#334155] text-slate-400 text-xs font-semibold hover:border-slate-500 transition-colors"
+            >
+              Not Analyzed
+            </button>
+            <div class="h-4 w-[1px] bg-slate-700 mx-2"></div>
+            <button
+              class="px-3 py-1.5 rounded border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/10"
+            >
+              Positive
+            </button>
+            <button
+              class="px-3 py-1.5 rounded border border-rose-500/30 text-rose-400 text-xs font-semibold hover:bg-rose-500/10"
+            >
+              Negative
+            </button>
+            <button
+              class="px-3 py-1.5 rounded border border-slate-500/30 text-slate-400 text-xs font-semibold hover:bg-slate-500/10"
+            >
+              Neutral
+            </button>
+          </div>
+          <div class="flex items-center gap-4">
+            <span class="text-label-caps text-slate-500">SORT BY:</span>
+            <select
+              class="bg-transparent border-none text-xs font-semibold text-slate-300 focus:ring-0 p-0 cursor-pointer"
+            >
+              <option>Highest Score</option>
+              <option>Newest</option>
+            </select>
+            <button
+              class="material-symbols-outlined text-slate-400 hover:text-slate-100"
+              data-icon="refresh"
+            >
+              refresh
+            </button>
+          </div>
+        </div>
+        <!-- Feed -->
+        <div class="space-y-card-gap">
+          <!-- Feed Item 1 (High Impact Positive) -->
+          <article
+            class="bg-[#1E293B] border-l-4 border-emerald-500 rounded overflow-hidden glow-emerald"
+          >
+            <div class="p-6 grid grid-cols-[1fr_200px] gap-6">
+              <div class="space-y-4">
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-2">
+                    <div
+                      class="w-6 h-6 bg-slate-50 rounded flex items-center justify-center p-0.5"
+                    >
+                      <img
+                        alt="Truth Social Logo"
+                        class="w-full h-full object-contain"
+                        data-alt="Official minimalist Truth Social logo with letter T on a clean background"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJ7DHOaYMUGgM51-neKjJqepvUkxK602bXN7d1XPK4RvDsw9P2pdpYfSrZE4JbSvwmrslzd-rQ63MRIHndKVrbsWHhD1IpGd_9dRM-oGYL-M8zmh4lD_U4mHPwOHmmE7e_MyFUGdISavb0CUD-WbgWCTDDByOJQ-QOoY9ZX4r9kpqmMp377b4o2GBRECsc3o1mJrk7xZWaHWLc4-EU57NZnRzIQwDr3DcOZHo4guPNS3ZBpaYvP9NjLmpuoElFQLej7Ubl43ccBg"
+                      />
+                    </div>
+                    <span class="text-xs font-bold text-slate-50"
+                      >Truth Social</span
+                    >
+                  </div>
+                  <span
+                    class="text-[11px] text-slate-500 font-mono tracking-tight"
+                    >2024-05-24 14:32:01 ET</span
+                  >
+                  <span class="text-[11px] text-slate-600 font-mono"
+                    >ID: TS-883921-X</span
+                  >
+                </div>
+                <p class="text-lg font-medium leading-relaxed text-slate-100">
+                  Just had a great meeting regarding the future of Digital
+                  Assets and American energy. We are going to make it easier for
+                  companies to mine and innovate right here in the U.S.A! MAGA!
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    class="px-2 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-bold flex items-center gap-1.5"
+                  >
+                    <span
+                      class="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                    ></span>
+                    POSITIVE DIRECTION
+                  </span>
+                  <span
+                    class="px-2 py-1 bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/20 rounded text-[10px] font-bold"
+                    >CONFIDENCE: 94%</span
+                  >
+                  <span
+                    class="px-2 py-1 bg-slate-700/50 text-slate-300 border border-slate-600 rounded text-[10px] font-bold uppercase"
+                    >$DJT</span
+                  >
+                  <span
+                    class="px-2 py-1 bg-slate-700/50 text-slate-300 border border-slate-600 rounded text-[10px] font-bold uppercase"
+                    >$BTC</span
+                  >
+                  <span
+                    class="px-2 py-1 bg-slate-700/50 text-slate-300 border border-slate-600 rounded text-[10px] font-bold uppercase"
+                    >$CL=F</span
+                  >
+                </div>
+              </div>
+              <div
+                class="flex flex-col items-center justify-center border-l border-[#334155] pl-6"
+              >
+                <span class="text-label-caps text-slate-500 mb-2"
+                  >IMPACT SCORE</span
+                >
+                <div
+                  class="relative flex items-center justify-center w-24 h-24"
+                >
+                  <svg class="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      fill="transparent"
+                      r="44"
+                      stroke="#334155"
+                      stroke-width="4"
+                    ></circle>
+                    <circle
+                      cx="48"
+                      cy="48"
+                      fill="transparent"
+                      r="44"
+                      stroke="#10b981"
+                      stroke-dasharray="276"
+                      stroke-dashoffset="41"
+                      stroke-width="4"
+                    ></circle>
+                  </svg>
+                  <div class="absolute flex flex-col items-center">
+                    <span
+                      class="font-data-mono text-3xl font-bold text-slate-50"
+                      >85</span
+                    >
+                    <span class="text-[10px] text-slate-500">/ 100</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <footer
+              class="bg-[#131b2e] px-6 py-3 border-t border-[#334155] flex items-center justify-between"
+            >
+              <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="material-symbols-outlined text-slate-500 text-sm"
+                    data-icon="robot_2"
+                    >robot_2</span
+                  >
+                  <span class="text-[11px] font-medium text-slate-400"
+                    >AI REASONING:
+                    <span class="text-slate-300"
+                      >Direct endorsement of crypto mining and domestic energy
+                      production; highly bullish for thematic stocks.</span
+                    ></span
+                  >
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div
+                  class="flex items-center gap-1.5 px-2 py-1 rounded bg-[#0b1326] border border-[#334155]"
+                >
+                  <span class="text-[10px] font-bold text-slate-500"
+                    >ANALYZER:</span
+                  >
+                  <span class="text-[10px] font-bold text-[#3B82F6]"
+                    >GPT-4O</span
+                  >
+                </div>
+                <span
+                  class="material-symbols-outlined text-slate-500 text-sm"
+                  data-icon="image"
+                  >image</span
+                >
+              </div>
+            </footer>
+          </article>
+          <!-- Feed Item 2 (Negative Impact) -->
+          <article
+            class="bg-[#1E293B] border-l-4 border-rose-500 rounded overflow-hidden glow-rose"
+          >
+            <div class="p-6 grid grid-cols-[1fr_200px] gap-6">
+              <div class="space-y-4">
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-2">
+                    <div
+                      class="w-6 h-6 bg-slate-50 rounded flex items-center justify-center p-0.5"
+                    >
+                      <img
+                        alt="Truth Social Logo"
+                        class="w-full h-full object-contain"
+                        data-alt="Official minimalist Truth Social logo with letter T on a clean background"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrN1c9O17YsJ9LFHVIIjuSw4YSXQ6n0ySCzSeiaMQRCpHxJFX5j_ka9B5bsweYZ6iGbmgPi_kJ6ppblmPzqyF45rRZjVHhFRqGNiSrXh3QDhWQwpeMchrtXJ0w1RpPvQ4NzAq00GIhbPp7b5ilTt0wSZIwEqpj6HTM9VO3ce4FTS2duSeGxjcV3KQfLtk5GbgKWPuD_qewwcEXNXg8ZvYEH2lHgrl-uiQe-i8BmX-C3SOAJN5lQwOZvKMvuNIABhG2u9OQxLdt6w"
+                      />
+                    </div>
+                    <span class="text-xs font-bold text-slate-50"
+                      >Truth Social</span
+                    >
+                  </div>
+                  <span
+                    class="text-[11px] text-slate-500 font-mono tracking-tight"
+                    >2024-05-24 11:15:44 ET</span
+                  >
+                  <span class="text-[11px] text-slate-600 font-mono"
+                    >ID: TS-883710-Y</span
+                  >
+                </div>
+                <p class="text-lg font-medium leading-relaxed text-slate-100">
+                  The current trade imbalances with foreign nations are
+                  unacceptable. We will be imposing massive new tariffs on
+                  companies that ship jobs overseas. Very bad for them!
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    class="px-2 py-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded text-[10px] font-bold flex items-center gap-1.5"
+                  >
+                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                    NEGATIVE DIRECTION
+                  </span>
+                  <span
+                    class="px-2 py-1 bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/20 rounded text-[10px] font-bold"
+                    >CONFIDENCE: 89%</span
+                  >
+                  <span
+                    class="px-2 py-1 bg-slate-700/50 text-slate-300 border border-slate-600 rounded text-[10px] font-bold uppercase"
+                    >$SPY</span
+                  >
+                  <span
+                    class="px-2 py-1 bg-slate-700/50 text-slate-300 border border-slate-600 rounded text-[10px] font-bold uppercase"
+                    >$XLI</span
+                  >
+                  <span
+                    class="px-2 py-1 bg-slate-700/50 text-slate-300 border border-slate-600 rounded text-[10px] font-bold uppercase"
+                    >$AAPL</span
+                  >
+                </div>
+              </div>
+              <div
+                class="flex flex-col items-center justify-center border-l border-[#334155] pl-6"
+              >
+                <span class="text-label-caps text-slate-500 mb-2"
+                  >IMPACT SCORE</span
+                >
+                <div
+                  class="relative flex items-center justify-center w-24 h-24"
+                >
+                  <svg class="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      fill="transparent"
+                      r="44"
+                      stroke="#334155"
+                      stroke-width="4"
+                    ></circle>
+                    <circle
+                      cx="48"
+                      cy="48"
+                      fill="transparent"
+                      r="44"
+                      stroke="#f43f5e"
+                      stroke-dasharray="276"
+                      stroke-dashoffset="75"
+                      stroke-width="4"
+                    ></circle>
+                  </svg>
+                  <div class="absolute flex flex-col items-center">
+                    <span
+                      class="font-data-mono text-3xl font-bold text-slate-50"
+                      >73</span
+                    >
+                    <span class="text-[10px] text-slate-500">/ 100</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <footer
+              class="bg-[#131b2e] px-6 py-3 border-t border-[#334155] flex items-center justify-between"
+            >
+              <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="material-symbols-outlined text-slate-500 text-sm"
+                    data-icon="robot_2"
+                    >robot_2</span
+                  >
+                  <span class="text-[11px] font-medium text-slate-400"
+                    >AI REASONING:
+                    <span class="text-slate-300"
+                      >Protectionist rhetoric likely to increase market
+                      volatility and pressure multinational tech/manufacturing
+                      supply chains.</span
+                    ></span
+                  >
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div
+                  class="flex items-center gap-1.5 px-2 py-1 rounded bg-[#0b1326] border border-[#334155]"
+                >
+                  <span class="text-[10px] font-bold text-slate-500"
+                    >ANALYZER:</span
+                  >
+                  <span class="text-[10px] font-bold text-[#3B82F6]"
+                    >GPT-4O</span
+                  >
+                </div>
+              </div>
+            </footer>
+          </article>
+          <!-- Feed Item 3 (Neutral) -->
+          <article
+            class="bg-[#1E293B] border-l-4 border-slate-500 rounded overflow-hidden"
+          >
+            <div class="p-6 grid grid-cols-[1fr_200px] gap-6">
+              <div class="space-y-4">
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-2">
+                    <div
+                      class="w-6 h-6 bg-slate-50 rounded flex items-center justify-center p-0.5"
+                    >
+                      <img
+                        alt="Truth Social Logo"
+                        class="w-full h-full object-contain"
+                        data-alt="Official minimalist Truth Social logo with letter T on a clean background"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0xx_uKZWXDTVBg88LGan-duzBiNMUdo5vPylD7YLXy_0HvTaSF53Q7ksK86sm3N0ubr-ltmC-FbEolYE85GKntP1Ijr8bBhE9ePQQ5CSSbMMQalMC-OOkX_Qj_0wiENZXd2ljQ4dnO89uH1-SNKbdN8cL667pnPO3Rs9CsQlvEQL5_ziMbOvQ7SNK0ThXPQgjNSpV1ElRz_V_YwLWvtHRuGT1ygFceXicuTvEZvNDqUUzDUO8BqgkkSyVLzZJOPPiZ0ERtmrEAA"
+                      />
+                    </div>
+                    <span class="text-xs font-bold text-slate-50"
+                      >Truth Social</span
+                    >
+                  </div>
+                  <span
+                    class="text-[11px] text-slate-500 font-mono tracking-tight"
+                    >2024-05-24 09:02:12 ET</span
+                  >
+                  <span class="text-[11px] text-slate-600 font-mono"
+                    >ID: TS-883505-Z</span
+                  >
+                </div>
+                <p class="text-lg font-medium leading-relaxed text-slate-400">
+                  Great rally last night in New Jersey! The crowds were
+                  incredible. Heading to DC now for a very important set of
+                  meetings. See you soon!
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    class="px-2 py-1 bg-slate-500/10 text-slate-400 border border-slate-500/20 rounded text-[10px] font-bold flex items-center gap-1.5"
+                  >
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                    NEUTRAL / UNCERTAIN
+                  </span>
+                  <span
+                    class="px-2 py-1 bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/20 rounded text-[10px] font-bold"
+                    >CONFIDENCE: 98%</span
+                  >
+                </div>
+              </div>
+              <div
+                class="flex flex-col items-center justify-center border-l border-[#334155] pl-6"
+              >
+                <span class="text-label-caps text-slate-500 mb-2"
+                  >IMPACT SCORE</span
+                >
+                <div
+                  class="relative flex items-center justify-center w-24 h-24"
+                >
+                  <svg class="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      fill="transparent"
+                      r="44"
+                      stroke="#334155"
+                      stroke-width="4"
+                    ></circle>
+                    <circle
+                      cx="48"
+                      cy="48"
+                      fill="transparent"
+                      r="44"
+                      stroke="#64748b"
+                      stroke-dasharray="276"
+                      stroke-dashoffset="230"
+                      stroke-width="4"
+                    ></circle>
+                  </svg>
+                  <div class="absolute flex flex-col items-center">
+                    <span
+                      class="font-data-mono text-3xl font-bold text-slate-50"
+                      >12</span
+                    >
+                    <span class="text-[10px] text-slate-500">/ 100</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <footer
+              class="bg-[#131b2e] px-6 py-3 border-t border-[#334155] flex items-center justify-between"
+            >
+              <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="material-symbols-outlined text-slate-500 text-sm"
+                    data-icon="robot_2"
+                    >robot_2</span
+                  >
+                  <span class="text-[11px] font-medium text-slate-400"
+                    >AI REASONING:
+                    <span class="text-slate-300"
+                      >Purely political/personal content. No specific industry
+                      or economic policy mentions detectable.</span
+                    ></span
+                  >
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div
+                  class="flex items-center gap-1.5 px-2 py-1 rounded bg-[#0b1326] border border-[#334155]"
+                >
+                  <span class="text-[10px] font-bold text-slate-500"
+                    >ANALYZER:</span
+                  >
+                  <span class="text-[10px] font-bold text-[#3B82F6]"
+                    >GPT-4O</span
+                  >
+                </div>
+              </div>
+            </footer>
+          </article>
+        </div>
+      </div>
+    </main>
+    <!-- FAB Action (Contextual: Home/Dashboard) -->
+    <button
+      class="fixed bottom-8 right-8 w-14 h-14 bg-[#3B82F6] text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform z-50"
+    >
+      <span class="material-symbols-outlined" data-icon="add">add</span>
+    </button>
+  </body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TrumpStockAlert | Admin Control Panel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Work+Sans:wght@600&amp;family=Space+Grotesk:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#dae2fd",
+                        "surface": "#0b1326",
+                        "surface-container-high": "#222a3d",
+                        "secondary-fixed": "#d8e3fb",
+                        "secondary-container": "#3e495d",
+                        "error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#3c475a",
+                        "on-secondary": "#263143",
+                        "outline-variant": "#424754",
+                        "on-background": "#dae2fd",
+                        "surface-variant": "#2d3449",
+                        "primary-fixed-dim": "#adc6ff",
+                        "inverse-on-surface": "#283044",
+                        "surface-container-highest": "#2d3449",
+                        "on-tertiary-fixed-variant": "#723600",
+                        "on-secondary-container": "#aeb9d0",
+                        "surface-container": "#171f33",
+                        "tertiary-fixed": "#ffdcc6",
+                        "background": "#0b1326",
+                        "error": "#ffb4ab",
+                        "surface-bright": "#31394d",
+                        "surface-dim": "#0b1326",
+                        "on-surface": "#dae2fd",
+                        "inverse-primary": "#005ac2",
+                        "on-tertiary": "#502400",
+                        "primary-container": "#4d8eff",
+                        "secondary-fixed-dim": "#bcc7de",
+                        "surface-container-low": "#131b2e",
+                        "surface-container-lowest": "#060e20",
+                        "on-tertiary-container": "#461f00",
+                        "primary": "#adc6ff",
+                        "tertiary": "#ffb786",
+                        "on-error": "#690005",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#004395",
+                        "on-surface-variant": "#c2c6d6",
+                        "on-secondary-fixed": "#111c2d",
+                        "tertiary-container": "#df7412",
+                        "secondary": "#bcc7de",
+                        "on-primary": "#002e6a",
+                        "on-tertiary-fixed": "#311400",
+                        "on-primary-container": "#00285d",
+                        "surface-tint": "#adc6ff",
+                        "on-primary-fixed": "#001a42",
+                        "outline": "#8c909f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "grid-gutter": "16px",
+                        "card-gap": "12px",
+                        "widget-internal": "8px",
+                        "unit": "4px",
+                        "container-padding": "24px"
+                    },
+                    "fontFamily": {
+                        "body-main": ["Inter"],
+                        "label-caps": ["Work Sans"],
+                        "display-lg": ["Inter"],
+                        "data-mono": ["Space Grotesk"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-main": ["14px", {"lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400"}],
+                        "label-caps": ["11px", {"lineHeight": "12px", "letterSpacing": "0.06em", "fontWeight": "600"}],
+                        "display-lg": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "data-mono": ["14px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .terminal-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: #060e20;
+        }
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-main selection:bg-primary/30 antialiased">
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-0 bottom-0 w-64 border-r border-[#1E293B] bg-[#0F172A] flex flex-col h-full z-50 font-['Inter'] tracking-tight text-xs font-medium">
+<div class="p-6">
+<div class="flex items-center gap-2 mb-1">
+<span class="text-[#3B82F6] font-black text-lg">Terminal</span>
+<span class="text-[10px] bg-[#1E293B] text-slate-400 px-1.5 py-0.5 rounded">v2.4.0-stable</span>
+</div>
+<div class="flex items-center gap-2 mt-4 p-2 bg-[#1E293B]/30 rounded border border-[#1E293B]">
+<div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+<span class="text-slate-300 uppercase tracking-widest text-[9px] font-bold">System Status Indicator</span>
+</div>
+</div>
+<nav class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B]/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#3B82F6] bg-[#1E293B] border-r-2 border-[#3B82F6] transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="admin_panel_settings">admin_panel_settings</span>
+                Admin
+            </a>
+</nav>
+<div class="p-3 border-t border-[#1E293B] space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B]/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B]/50 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
+                Documentation
+            </a>
+</div>
+</aside>
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 right-0 left-64 h-16 flex items-center justify-between px-6 z-40 bg-[#0F172A] border-b border-[#1E293B] border-opacity-50 font-['Inter'] antialiased text-sm">
+<div class="flex items-center gap-4">
+<span class="text-lg font-bold tracking-tighter text-slate-50 uppercase">TrumpStockAlert</span>
+<div class="h-4 w-px bg-slate-700"></div>
+<div class="flex items-center gap-2 text-slate-400">
+<span class="material-symbols-outlined text-xs" data-icon="terminal">terminal</span>
+<span class="text-xs font-medium uppercase tracking-wider">Developer Console</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="absolute inset-y-0 left-3 flex items-center text-slate-500">
+<span class="material-symbols-outlined text-sm" data-icon="search">search</span>
+</span>
+<input class="bg-[#1E293B] border-none text-xs rounded px-10 py-2 w-64 focus:ring-1 focus:ring-[#3B82F6] text-slate-200 placeholder:text-slate-500" placeholder="Search logs or tools..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B] transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B] transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</button>
+<button class="p-2 text-slate-400 hover:text-slate-100 hover:bg-[#1E293B] transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-16 min-h-screen bg-surface">
+<div class="p-container-padding space-y-grid-gutter">
+<!-- Page Header -->
+<div class="flex justify-between items-end pb-2 border-b border-surface-container-high/50">
+<div>
+<h1 class="font-headline-md text-headline-md text-on-surface">Admin Control Panel</h1>
+<p class="text-on-surface-variant text-body-main opacity-70">Infrastructure and worker management terminal</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-surface-container-high border border-outline-variant/30 text-on-surface text-xs font-semibold rounded hover:bg-surface-container-highest transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="cloud_sync">cloud_sync</span>
+                        SYSTEM RESET
+                    </button>
+</div>
+</div>
+<!-- Dashboard Grid Layout -->
+<div class="grid grid-cols-12 gap-card-gap">
+<!-- Maintenance Actions (Left Column - Bento Style) -->
+<div class="col-span-12 lg:col-span-8 grid grid-cols-2 gap-card-gap">
+<!-- Action Card 1 -->
+<div class="bg-surface-container border border-outline-variant/20 p-4 hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-primary" data-icon="science">science</span>
+<span class="text-[10px] text-primary/60 font-mono">TEST_SUITE_01</span>
+</div>
+<h3 class="font-headline-md text-sm mb-1">Run Collector Test</h3>
+<p class="text-xs text-on-surface-variant mb-6 h-8">Execute diagnostic fetch on primary data streams.</p>
+<button class="w-full py-2 bg-primary text-on-primary font-bold text-xs uppercase tracking-widest rounded hover:brightness-110 active:scale-[0.98] transition-all">
+                            RUN TEST
+                        </button>
+</div>
+<!-- Action Card 2 -->
+<div class="bg-surface-container border border-outline-variant/20 p-4 hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-tertiary" data-icon="psychology">psychology</span>
+<span class="text-[10px] text-tertiary/60 font-mono">MODEL_INFERENCE</span>
+</div>
+<h3 class="font-headline-md text-sm mb-1">Trigger AI Analysis</h3>
+<p class="text-xs text-on-surface-variant mb-6 h-8">Force immediate re-processing of latest posts.</p>
+<button class="w-full py-2 bg-primary text-on-primary font-bold text-xs uppercase tracking-widest rounded hover:brightness-110 active:scale-[0.98] transition-all">
+                            EXECUTE AI
+                        </button>
+</div>
+<!-- Action Card 3 -->
+<div class="bg-surface-container border border-outline-variant/20 p-4 hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-secondary" data-icon="database">database</span>
+<span class="text-[10px] text-secondary/60 font-mono">POSTGRES_MASTER</span>
+</div>
+<h3 class="font-headline-md text-sm mb-1">Refresh Data Store</h3>
+<p class="text-xs text-on-surface-variant mb-6 h-8">Sync local metadata with production replicas.</p>
+<button class="w-full py-2 bg-primary text-on-primary font-bold text-xs uppercase tracking-widest rounded hover:brightness-110 active:scale-[0.98] transition-all">
+                            SYNC DB
+                        </button>
+</div>
+<!-- Action Card 4 -->
+<div class="bg-surface-container border border-outline-variant/20 p-4 hover:border-error/50 transition-colors group">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-error" data-icon="delete_sweep">delete_sweep</span>
+<span class="text-[10px] text-error/60 font-mono">REDIS_FLUSH</span>
+</div>
+<h3 class="font-headline-md text-sm mb-1">Purge Cache</h3>
+<p class="text-xs text-on-surface-variant mb-6 h-8">Clear all L1/L2 application and session caches.</p>
+<button class="w-full py-2 bg-primary text-on-primary font-bold text-xs uppercase tracking-widest rounded hover:brightness-110 active:scale-[0.98] transition-all">
+                            PURGE ALL
+                        </button>
+</div>
+</div>
+<!-- Run Status & Env Info (Right Column) -->
+<div class="col-span-12 lg:col-span-4 space-y-card-gap">
+<!-- Latest Run Status -->
+<div class="bg-surface-container border border-outline-variant/20 p-4">
+<div class="flex items-center gap-2 mb-4">
+<span class="text-label-caps font-label-caps text-on-surface-variant uppercase">Latest Run Status</span>
+<div class="flex-1 h-px bg-outline-variant/30"></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<span class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">Total Processed</span>
+<div class="text-display-lg font-data-mono text-primary">150</div>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">Skipped</span>
+<div class="text-display-lg font-data-mono text-secondary">12</div>
+</div>
+<div class="space-y-1 border-t border-outline-variant/20 pt-2">
+<span class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">Failed</span>
+<div class="text-display-lg font-data-mono text-error">2</div>
+</div>
+<div class="space-y-1 border-t border-outline-variant/20 pt-2">
+<span class="text-[10px] text-on-surface-variant uppercase font-bold tracking-tighter">Duration</span>
+<div class="text-display-lg font-data-mono text-on-surface">45s</div>
+</div>
+</div>
+</div>
+<!-- Environment Info -->
+<div class="bg-surface-container border border-outline-variant/20 p-4">
+<div class="flex items-center gap-2 mb-4">
+<span class="text-label-caps font-label-caps text-on-surface-variant uppercase">Environment Info</span>
+<div class="flex-1 h-px bg-outline-variant/30"></div>
+</div>
+<div class="space-y-3">
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase font-bold">Analyzer Provider</span>
+<div class="flex items-center justify-between">
+<span class="text-xs font-data-mono text-primary">OpenAI (gpt-4o)</span>
+<span class="material-symbols-outlined text-xs text-emerald-500" data-icon="check_circle">check_circle</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase font-bold">API Base URL</span>
+<span class="text-xs font-data-mono text-on-surface break-all">https://api.trumpstockalert.ai/v2</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-on-surface-variant uppercase font-bold">Database</span>
+<div class="flex items-center gap-2">
+<span class="text-xs font-data-mono text-on-surface">production-cluster-01</span>
+<span class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-500 text-[9px] font-bold rounded border border-emerald-500/20">LIVE</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Console Output (Full Width Bottom) -->
+<div class="col-span-12">
+<div class="bg-[#060e20] border border-outline-variant/30 rounded shadow-2xl overflow-hidden">
+<div class="bg-surface-container-high px-4 py-2 border-b border-outline-variant/30 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="flex gap-1.5">
+<div class="w-3 h-3 rounded-full bg-red-500/50"></div>
+<div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+<div class="w-3 h-3 rounded-full bg-green-500/50"></div>
+</div>
+<span class="text-[11px] font-data-mono text-on-surface-variant tracking-wider uppercase">System Logs — Main Process</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-[10px] text-emerald-500 font-data-mono animate-pulse">STREAMING_LIVE</span>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-sm" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+</div>
+<div class="p-6 h-[400px] overflow-y-auto font-data-mono text-xs terminal-scroll leading-relaxed">
+<div class="space-y-1.5">
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:01]</span>
+<span class="text-primary font-bold">[INFO]</span>
+<span class="text-slate-300">Initializing environment variables...</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:03]</span>
+<span class="text-primary font-bold">[INFO]</span>
+<span class="text-slate-300">Establishing connection to production-cluster-01...</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:05]</span>
+<span class="text-emerald-500 font-bold">[SUCCESS]</span>
+<span class="text-slate-300">Database connected. Latency: 14ms.</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:10]</span>
+<span class="text-primary font-bold">[INFO]</span>
+<span class="text-slate-300">Starting collector process (worker_id: x7f2)...</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:15]</span>
+<span class="text-primary font-bold">[INFO]</span>
+<span class="text-slate-300">Scanning TruthSocial endpoints for new activity...</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:18]</span>
+<span class="text-emerald-500 font-bold">[SUCCESS]</span>
+<span class="text-slate-300 font-semibold text-emerald-400">Fetched 15 new posts.</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:20]</span>
+<span class="text-tertiary font-bold">[AI]</span>
+<span class="text-slate-300">Analyzing post 0x9f3 with provider OpenAI...</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:22]</span>
+<span class="text-tertiary font-bold">[AI]</span>
+<span class="text-slate-300">Sentiment Score: 0.85 (Strong Positive) - Detected Keyword: "Unstoppable"</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:25]</span>
+<span class="text-primary font-bold">[INFO]</span>
+<span class="text-slate-300">Broadcasting alert to 12,450 connected clients...</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:28]</span>
+<span class="text-yellow-500 font-bold">[WARN]</span>
+<span class="text-slate-300">API rate limit threshold at 72% for key: TS_SEC_01</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:30]</span>
+<span class="text-primary font-bold">[INFO]</span>
+<span class="text-slate-300">Cleaning up temporary buffers...</span>
+</div>
+<div class="flex gap-3">
+<span class="text-slate-600">[2023-10-27 14:22:32]</span>
+<span class="text-emerald-500 font-bold">[SUCCESS]</span>
+<span class="text-slate-300">Run completed in 45.2 seconds.</span>
+</div>
+<div class="flex gap-3 animate-pulse">
+<span class="text-slate-600">[2023-10-27 14:22:45]</span>
+<span class="text-slate-400 font-bold">[WAIT]</span>
+<span class="text-slate-500 italic">Listening for next event loop...</span>
+<span class="inline-block w-1.5 h-4 bg-primary align-middle ml-1"></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
