@@ -54,16 +54,6 @@ export interface AnalysisRunResult {
   failedPostIds: number[];
 }
 
-export interface CollectorTestRunResult {
-  startedAt: string;
-  finishedAt: string;
-  exitCode: number;
-  success: boolean;
-  timedOut: boolean;
-  stdout: string;
-  stderr: string;
-}
-
 export interface CollectorRunTestResult {
   success: boolean;
   message: string;

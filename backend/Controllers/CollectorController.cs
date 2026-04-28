@@ -41,45 +41,6 @@ public sealed class CollectorController(
         }
     }
 
-    [HttpPost("test-run")]
-    [ProducesResponseType(typeof(CollectorTestRunResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<CollectorTestRunResponse>> RunCollectorTest(
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await RunCollectorTestCore(cancellationToken);
-            return result is null
-                ? NotFound()
-                : Ok(new CollectorTestRunResponse
-                {
-                    StartedAt = result.StartedAt,
-                    FinishedAt = result.FinishedAt,
-                    ExitCode = result.ExitCode,
-                    Success = result.Success,
-                    TimedOut = result.TimedOut,
-                    Stdout = result.Stdout,
-                    Stderr = result.Stderr
-                });
-        }
-        catch (FileNotFoundException exception)
-        {
-            return Problem(
-                title: "Collector test script not found.",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status500InternalServerError);
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            return Problem(
-                title: "Collector test run failed.",
-                detail: exception.Message,
-                statusCode: StatusCodes.Status500InternalServerError);
-        }
-    }
-
     private async Task<CollectorTestRunResult?> RunCollectorTestCore(
         CancellationToken cancellationToken)
     {

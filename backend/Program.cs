@@ -67,10 +67,11 @@ var app = builder.Build();
 app.Logger.LogInformation(
     "Configured SQL Server provider. Apply migrations with 'dotnet ef database update' before running in a new environment.");
 
+app.UseSwagger();
+app.UseSwaggerUI();
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
     app.UseCors("FrontendDev");
 }
 

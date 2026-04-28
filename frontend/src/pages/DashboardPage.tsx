@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import { getAnalyses, getTruthPosts, runAnalysis, runCollectorTest } from '../api/client';
-import type { AnalysisRunResult, CollectorTestRunResult, PostAnalysis, TruthPost } from '../types/api';
+import type { AnalysisRunResult, CollectorRunTestResult, PostAnalysis, TruthPost } from '../types/api';
 
 type Filter = 'all' | 'high' | 'not-analyzed' | 'negative' | 'positive' | 'uncertain-neutral';
 
@@ -21,7 +21,7 @@ function DashboardPage() {
   const [collectorRunning, setCollectorRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [runResult, setRunResult] = useState<AnalysisRunResult | null>(null);
-  const [collectorResult, setCollectorResult] = useState<CollectorTestRunResult | null>(null);
+  const [collectorResult, setCollectorResult] = useState<CollectorRunTestResult | null>(null);
 
   async function refreshData() {
     setLoading(true);
@@ -145,7 +145,7 @@ function DashboardPage() {
   );
 }
 
-function CollectorRunOutput({ result }: { result: CollectorTestRunResult }) {
+function CollectorRunOutput({ result }: { result: CollectorRunTestResult }) {
   return (
     <details className={result.success ? 'collector-output success-output' : 'collector-output error-output'} open>
       <summary>
@@ -153,14 +153,19 @@ function CollectorRunOutput({ result }: { result: CollectorTestRunResult }) {
       </summary>
       <dl className="collector-meta">
         <div>
-          <dt>Started</dt>
-          <dd>{formatDate(result.startedAt)}</dd>
+          <dt>Finished</dt>
+          <dd>{formatDate(result.timestamp)}</dd>
         </div>
         <div>
-          <dt>Finished</dt>
-          <dd>{formatDate(result.finishedAt)}</dd>
+          <dt>Fetched</dt>
+          <dd>{result.fetchedPosts ?? 'n/a'}</dd>
+        </div>
+        <div>
+          <dt>Saved</dt>
+          <dd>{result.savedPosts ?? 'n/a'}</dd>
         </div>
       </dl>
+      <p>{result.message}</p>
       {result.stdout && (
         <>
           <h3>stdout</h3>
