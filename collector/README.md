@@ -28,6 +28,16 @@ data/
 
 Truthbrush requires Python 3.10 or newer.
 
+From the repository root, the Function-friendly setup is:
+
+```powershell
+.\setup-collector-python.ps1 -Dev
+```
+
+That creates `collector\.venv`, installs this package in editable mode with development dependencies, and verifies that `truthbrush` imports from the venv.
+
+If you are already in the `collector` directory, the equivalent manual setup is:
+
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1

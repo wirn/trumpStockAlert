@@ -39,6 +39,12 @@ public sealed class CollectorController(
             return authorizationResult;
         }
 
+        if (!environment.IsDevelopment())
+        {
+            logger.LogWarning("Collector run endpoint was requested outside Development and was rejected.");
+            return NotFound();
+        }
+
         try
         {
             var result = await collectorRunner.RunAsync(cancellationToken);

@@ -76,6 +76,18 @@ Do not store the real value in source control. Optional collector settings use t
 
 Prefer managed identity for production when you wire up Azure SQL authentication later. If using SQL credentials, store them in Azure app settings or Key Vault, never in source control.
 
+## Azure Collector Runtime
+
+The backend App Service does not run the collector process in production and does not require PowerShell. Scheduled collection is handled by the Azure Function project, which runs the Python collector directly and saves posts through `POST /api/truth-posts`.
+
+`POST /api/collector/run` is retained as a local Development-only helper. It still requires:
+
+```text
+Collector__ApiKey
+```
+
+In non-Development environments, `/api/collector/run` returns `404` after API-key validation and does not attempt to start PowerShell or Python.
+
 ## Migrations
 
 EF Core migrations are enabled for SQL Server. The initial migration creates `truth_posts` with a unique index on:

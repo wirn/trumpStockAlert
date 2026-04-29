@@ -14,8 +14,7 @@ public sealed partial class CollectorProcessRunner(
         bool testMode,
         CancellationToken cancellationToken)
     {
-        var scriptPath = Path.GetFullPath(
-            Path.Combine(environment.ContentRootPath, "..", "run-collector.ps1"));
+        var scriptPath = ResolveScriptPath();
 
         if (!File.Exists(scriptPath))
         {
@@ -122,13 +121,15 @@ public sealed partial class CollectorProcessRunner(
             arguments += " -SkipLookback";
         }
 
+        var powerShellExecutable = ResolvePowerShellExecutable();
         logger.LogInformation(
-            "Collector process command: powershell.exe {Arguments}",
+            "Collector process command: {PowerShellExecutable} {Arguments}",
+            powerShellExecutable,
             arguments);
 
         var startInfo = new ProcessStartInfo
         {
-            FileName = "powershell.exe",
+            FileName = powerShellExecutable,
             Arguments = arguments,
             WorkingDirectory = Path.GetDirectoryName(scriptPath) ?? environment.ContentRootPath,
             RedirectStandardOutput = true,
@@ -139,13 +140,62 @@ public sealed partial class CollectorProcessRunner(
 
         startInfo.Environment["COLLECTOR_STORE_MODE"] = "api";
 
-        var backendBaseUrl = configuration["Collector:BackendBaseUrl"]?.Trim();
+        var backendBaseUrl = ResolveBackendBaseUrl();
         if (!string.IsNullOrWhiteSpace(backendBaseUrl))
         {
             startInfo.Environment["TRUTH_POST_API_BASE_URL"] = backendBaseUrl.TrimEnd('/');
         }
 
+        var pythonExecutable = configuration["Collector:PythonExecutable"]?.Trim();
+        if (!string.IsNullOrWhiteSpace(pythonExecutable))
+        {
+            startInfo.Environment["PYTHON_EXECUTABLE"] = pythonExecutable;
+        }
+
         return startInfo;
+    }
+
+    private string ResolvePowerShellExecutable()
+    {
+        var configuredExecutable = configuration["Collector:PowerShellExecutable"]?.Trim();
+        if (!string.IsNullOrWhiteSpace(configuredExecutable))
+        {
+            return configuredExecutable;
+        }
+
+        return OperatingSystem.IsWindows() ? "powershell.exe" : "pwsh";
+    }
+
+    private string ResolveScriptPath()
+    {
+        var configuredScriptPath = configuration["Collector:ScriptPath"]?.Trim();
+        if (!string.IsNullOrWhiteSpace(configuredScriptPath))
+        {
+            return Path.GetFullPath(configuredScriptPath);
+        }
+
+        var publishedPath = Path.Combine(environment.ContentRootPath, "run-collector.ps1");
+        if (File.Exists(publishedPath))
+        {
+            return Path.GetFullPath(publishedPath);
+        }
+
+        return Path.GetFullPath(
+            Path.Combine(environment.ContentRootPath, "..", "run-collector.ps1"));
+    }
+
+    private string? ResolveBackendBaseUrl()
+    {
+        var configuredBaseUrl = configuration["Collector:BackendBaseUrl"]?.Trim();
+        if (!string.IsNullOrWhiteSpace(configuredBaseUrl))
+        {
+            return configuredBaseUrl;
+        }
+
+        var websiteHostname = configuration["WEBSITE_HOSTNAME"]?.Trim();
+        return string.IsNullOrWhiteSpace(websiteHostname)
+            ? null
+            : $"https://{websiteHostname}";
     }
 
     private static int? ParseCount(Regex regex, params string[] outputs)

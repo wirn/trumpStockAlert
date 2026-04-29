@@ -39,3 +39,10 @@ backend/Properties/PublishProfiles/
 
 # Misc
 info.md
+
+# Azurite local storage
+AzuriteConfig
+__azurite_db_*.json
+__blobstorage__/
+__queuestorage__/
+__tablestorage__/

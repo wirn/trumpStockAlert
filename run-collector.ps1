@@ -22,7 +22,19 @@ try {
         $argsToPass += "--skip-lookback"
     }
 
-    & ".\.venv\Scripts\python.exe" -m collector.main @argsToPass
+    $pythonExecutable = $env:PYTHON_EXECUTABLE
+
+    if ([string]::IsNullOrWhiteSpace($pythonExecutable)) {
+        $localVenvPython = Join-Path (Get-Location) ".venv\Scripts\python.exe"
+        if (Test-Path $localVenvPython) {
+            $pythonExecutable = $localVenvPython
+        }
+        else {
+            $pythonExecutable = "python"
+        }
+    }
+
+    & $pythonExecutable -m collector.main @argsToPass
 }
 finally {
     Set-Location $originalLocation

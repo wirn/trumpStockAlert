@@ -4,6 +4,9 @@
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "BackendBaseUrl": "http://localhost:5044",
-    "CollectorApiKey": "<local-development-secret>"
+    "Collector__PythonExecutable": "..\\collector\\.venv\\Scripts\\python.exe",
+    "Collector__CollectorDirectory": "..\\collector",
+    "TruthSocialUsername": "realDonaldTrump",
+    "MaxPosts": "10"
   }
 }
