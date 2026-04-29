@@ -25,6 +25,9 @@ backend/data/*.db-wal
 
 # Collector data
 collector/data/*.json
+truthsocial-fetcher-poc/node_modules/
+truthsocial-fetcher-poc/output/*.json
+truthsocial-fetcher-poc/.auth/
 
 # Azure Functions
 collector-function/local.settings.json
