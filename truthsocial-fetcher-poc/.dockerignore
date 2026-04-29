@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.env
+.env.*
+.auth
+output
+playwright-report
+test-results
+.playwright
+README.md
+test
+*.zip
