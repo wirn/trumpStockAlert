@@ -11,6 +11,7 @@ from collector.models import NormalizedPost
 class SavePostsResult:
     saved_posts: list[NormalizedPost]
     already_existing_count: int
+    failed_count: int = 0
 
     @property
     def saved_count(self) -> int:

@@ -11,6 +11,7 @@ public sealed partial class CollectorTimerFunction(
     ILogger<CollectorTimerFunction> logger)
 {
     private static readonly TimeSpan CollectorTimeout = TimeSpan.FromSeconds(120);
+    private const int CollectorStreamLogMaxLength = 12000;
 
     [Function(nameof(CollectorTimerFunction))]
     public async Task RunAsync(
@@ -74,20 +75,30 @@ public sealed partial class CollectorTimerFunction(
         var exitCode = timedOut ? -1 : process.ExitCode;
         var success = !timedOut && exitCode == 0;
 
+        logger.LogInformation(
+            "Collector process stdout: {Stdout}",
+            Truncate(stdout, CollectorStreamLogMaxLength));
+        logger.LogInformation(
+            "Collector process stderr: {Stderr}",
+            Truncate(stderr, CollectorStreamLogMaxLength));
+
         var fetchedPosts = ParseCount(KeptPostsRegex(), stdout, stderr)
             ?? ParseCount(FetchedPostsRegex(), stdout, stderr);
         var savedPosts = ParseCount(SavedPostsRegex(), stdout, stderr);
         var skippedPosts = ParseCount(SkippedPostsRegex(), stdout, stderr)
             ?? CalculateSkippedPosts(fetchedPosts, savedPosts);
+        var failedPosts = ParseCount(FailedPostsRegex(), stdout, stderr);
 
         if (success)
         {
             logger.LogInformation(
-                "Collector process completed. FetchedPosts: {FetchedPosts}. SavedPosts: {SavedPosts}. SkippedPosts: {SkippedPosts}. Output: {Output}",
+                "Collector process completed. FetchedPosts: {FetchedPosts}. SavedPosts: {SavedPosts}. SkippedPosts: {SkippedPosts}. FailedPosts: {FailedPosts}. StdoutLength: {StdoutLength}. StderrLength: {StderrLength}.",
                 fetchedPosts,
                 savedPosts,
                 skippedPosts,
-                Truncate(stdout, 2000));
+                failedPosts,
+                stdout.Length,
+                stderr.Length);
             return;
         }
 
@@ -95,8 +106,8 @@ public sealed partial class CollectorTimerFunction(
             "Collector process failed. ExitCode: {ExitCode}. TimedOut: {TimedOut}. Stdout: {Stdout}. Stderr: {Stderr}",
             exitCode,
             timedOut,
-            Truncate(stdout, 2000),
-            Truncate(stderr, 2000));
+            Truncate(stdout, CollectorStreamLogMaxLength),
+            Truncate(stderr, CollectorStreamLogMaxLength));
     }
 
     private ProcessStartInfo CreateStartInfo(
@@ -144,7 +155,7 @@ public sealed partial class CollectorTimerFunction(
         var configuredPath = GetConfiguredValue("Collector:CollectorDirectory", "CollectorDirectory");
         if (!string.IsNullOrWhiteSpace(configuredPath))
         {
-            return Path.GetFullPath(configuredPath);
+            return ResolveConfiguredPath(configuredPath);
         }
 
         return Path.Combine(AppContext.BaseDirectory, "collector");
@@ -175,8 +186,61 @@ public sealed partial class CollectorTimerFunction(
     private static string ResolveExecutablePath(string executable)
     {
         return Path.IsPathRooted(executable) || executable.Contains(Path.DirectorySeparatorChar) || executable.Contains(Path.AltDirectorySeparatorChar)
-            ? Path.GetFullPath(executable)
+            ? ResolveConfiguredPath(executable)
             : executable;
+    }
+
+    private static string ResolveConfiguredPath(string path)
+    {
+        if (Path.IsPathRooted(path))
+        {
+            return Path.GetFullPath(path);
+        }
+
+        foreach (var basePath in EnumerateBasePaths())
+        {
+            var candidate = Path.GetFullPath(Path.Combine(basePath, path));
+            if (File.Exists(candidate) || Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return Path.GetFullPath(Path.Combine(GetFunctionAppRoot(), path));
+    }
+
+    private static string GetFunctionAppRoot()
+    {
+        var scriptRoot = Environment.GetEnvironmentVariable("AzureWebJobsScriptRoot");
+        return string.IsNullOrWhiteSpace(scriptRoot)
+            ? Directory.GetCurrentDirectory()
+            : scriptRoot;
+    }
+
+    private static IEnumerable<string> EnumerateBasePaths()
+    {
+        var roots = new[]
+        {
+            Environment.GetEnvironmentVariable("AzureWebJobsScriptRoot"),
+            Environment.GetEnvironmentVariable("FUNCTIONS_APPLICATION_DIRECTORY"),
+            Directory.GetCurrentDirectory(),
+            AppContext.BaseDirectory
+        };
+
+        foreach (var root in roots)
+        {
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                continue;
+            }
+
+            var directory = new DirectoryInfo(Path.GetFullPath(root));
+            while (directory is not null)
+            {
+                yield return directory.FullName;
+                directory = directory.Parent;
+            }
+        }
     }
 
     private static int? ParseCount(Regex regex, params string[] outputs)
@@ -224,4 +288,7 @@ public sealed partial class CollectorTimerFunction(
 
     [GeneratedRegex(@"(\d+)\s+posts\s+were\s+already\s+in\s+the\s+database", RegexOptions.IgnoreCase)]
     private static partial Regex SkippedPostsRegex();
+
+    [GeneratedRegex(@"(\d+)\s+posts\s+failed\s+to\s+save", RegexOptions.IgnoreCase)]
+    private static partial Regex FailedPostsRegex();
 }

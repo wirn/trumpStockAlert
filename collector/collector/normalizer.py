@@ -32,7 +32,7 @@ class PostNormalizer:
     def normalize(self, raw_post: dict[str, Any]) -> NormalizedPost:
         external_id = self._required_string(raw_post, "id")
         created_at = self._required_string(raw_post, "created_at")
-        raw_content = self._required_string(raw_post, "content")
+        content = self._resolve_content(raw_post)
 
         url = raw_post.get("url")
         if not isinstance(url, str) or not url.strip():
@@ -43,7 +43,7 @@ class PostNormalizer:
             author=self.author,
             externalId=external_id,
             url=url,
-            content=self._clean_content(raw_content),
+            content=content,
             createdAt=created_at,
             collectedAt=datetime.now(UTC).isoformat(),
             raw=raw_post,
@@ -59,3 +59,48 @@ class PostNormalizer:
         without_tags = HTML_TAG_PATTERN.sub(" ", content)
         decoded = html.unescape(without_tags)
         return WHITESPACE_PATTERN.sub(" ", decoded).strip()
+
+    def _resolve_content(self, raw_post: dict[str, Any]) -> str:
+        candidates = [
+            self._clean_optional_string(raw_post.get("content")),
+            self._clean_optional_string(raw_post.get("text")),
+            self._clean_optional_string(raw_post.get("title")),
+            self._content_from_card(raw_post.get("card")),
+            self._content_from_embedded_post(raw_post.get("quote")),
+            self._content_from_embedded_post(raw_post.get("reblog")),
+        ]
+
+        for candidate in candidates:
+            if candidate:
+                return candidate
+
+        return "[No text content]"
+
+    def _clean_optional_string(self, value: Any) -> str | None:
+        if not isinstance(value, str):
+            return None
+
+        cleaned = self._clean_content(value)
+        return cleaned or None
+
+    def _content_from_card(self, value: Any) -> str | None:
+        if not isinstance(value, dict):
+            return None
+
+        candidates = [
+            self._clean_optional_string(value.get("title")),
+            self._clean_optional_string(value.get("description")),
+        ]
+        return next((candidate for candidate in candidates if candidate), None)
+
+    def _content_from_embedded_post(self, value: Any) -> str | None:
+        if not isinstance(value, dict):
+            return None
+
+        candidates = [
+            self._clean_optional_string(value.get("content")),
+            self._clean_optional_string(value.get("text")),
+            self._clean_optional_string(value.get("title")),
+            self._content_from_card(value.get("card")),
+        ]
+        return next((candidate for candidate in candidates if candidate), None)

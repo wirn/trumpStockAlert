@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import UTC, datetime
+import logging
 from typing import Any
 
 from collector.normalizer import PostNormalizer
@@ -96,7 +97,7 @@ def test_filters_out_posts_older_than_created_after(tmp_path: Path) -> None:
     assert [post["externalId"] for post in post_store.load_posts()] == ["2"]
 
 
-def test_test_mode_still_persists_fetched_posts() -> None:
+def test_test_mode_still_persists_fetched_posts(caplog: Any) -> None:
     post = PostNormalizer("realDonaldTrump").normalize(
         {
             "id": "1",
@@ -104,7 +105,9 @@ def test_test_mode_still_persists_fetched_posts() -> None:
             "created_at": "2026-04-26T12:00:00.000Z",
         }
     )
-    post_store = FakeApiStore(SavePostsResult(saved_posts=[post], already_existing_count=0))
+    post_store = FakeApiStore(
+        SavePostsResult(saved_posts=[post], already_existing_count=2, failed_count=1)
+    )
     service = CollectorService(
         client=FakeClient(
             [
@@ -120,7 +123,9 @@ def test_test_mode_still_persists_fetched_posts() -> None:
         test_mode=True,
     )
 
-    new_posts = service.run(max_posts=1)
+    with caplog.at_level(logging.INFO):
+        new_posts = service.run(max_posts=1)
 
     assert [saved.externalId for saved in post_store.saved_inputs] == ["1"]
     assert [saved.externalId for saved in new_posts] == ["1"]
+    assert "Collector save summary. Saved: 1. Skipped: 2. Failed: 1." in caplog.text

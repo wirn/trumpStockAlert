@@ -6,6 +6,7 @@ import json
 import logging
 import socket
 import ssl
+from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -14,6 +15,13 @@ from collector.models import NormalizedPost
 from collector.post_store_result import SavePostsResult
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class BackendPostResponse:
+    status_code: int
+    body: str
+    payload: dict[str, Any]
 
 
 class ApiTruthPostStore:
@@ -28,34 +36,56 @@ class ApiTruthPostStore:
     def save_posts(self, posts: list[NormalizedPost]) -> SavePostsResult:
         saved_posts: list[NormalizedPost] = []
         already_existing_count = 0
+        failed_count = 0
 
         for post in posts:
-            status_code, response = self._post(post)
-            if status_code == 201:
+            try:
+                response = self._post(post)
+            except Exception as exc:
+                failed_count += 1
+                logger.error(
+                    "FailedPost ExternalId=%s StatusCode=unavailable ResponseBody=%s",
+                    post.externalId,
+                    exc,
+                )
+                continue
+
+            if response.status_code == 201:
                 saved_posts.append(post)
                 logger.info(
                     "Saved post %s/%s to backend database as row %s.",
                     post.source,
                     post.externalId,
-                    response.get("id"),
+                    response.payload.get("id"),
                 )
-            elif status_code == 200:
+            elif self._is_existing_post_response(response):
                 already_existing_count += 1
                 logger.info(
-                    "Post %s/%s already exists in backend database as row %s.",
+                    "Post %s/%s already exists in backend database. StatusCode: %s. Row: %s.",
                     post.source,
                     post.externalId,
-                    response.get("id"),
+                    response.status_code,
+                    response.payload.get("id"),
                 )
             else:
-                raise RuntimeError(
-                    f"Unexpected backend response {status_code} for post "
-                    f"{post.source}/{post.externalId}."
+                failed_count += 1
+                logger.error(
+                    "FailedPost ExternalId=%s StatusCode=%s ResponseBody=%s",
+                    post.externalId,
+                    response.status_code,
+                    self._compact_response_body(response.body),
                 )
 
-        return SavePostsResult(saved_posts, already_existing_count)
+        logger.info(
+            "Backend save summary. Saved: %s. Skipped: %s. Failed: %s.",
+            len(saved_posts),
+            already_existing_count,
+            failed_count,
+        )
 
-    def _post(self, post: NormalizedPost) -> tuple[int, dict[str, Any]]:
+        return SavePostsResult(saved_posts, already_existing_count, failed_count)
+
+    def _post(self, post: NormalizedPost) -> BackendPostResponse:
         body = json.dumps(post.to_dict()).encode("utf-8")
         request = Request(
             url=self.endpoint_url,
@@ -65,15 +95,26 @@ class ApiTruthPostStore:
         )
 
         try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
-                payload = self._read_json(response.read())
-                return response.status, payload
+            with self._open(request, timeout=self.timeout_seconds) as response:
+                response_body = response.read().decode("utf-8", errors="replace")
+                return BackendPostResponse(
+                    status_code=response.status,
+                    body=response_body,
+                    payload=self._read_json(response_body),
+                )
         except HTTPError as exc:
             error_body = exc.read().decode("utf-8", errors="replace")
-            raise RuntimeError(
-                f"Backend rejected post {post.source}/{post.externalId} "
-                f"with HTTP {exc.code}: {error_body}"
-            ) from exc
+            logger.error(
+                "FailedPost ExternalId=%s StatusCode=%s ResponseBody=%s",
+                post.externalId,
+                exc.code,
+                self._compact_response_body(error_body),
+            )
+            return BackendPostResponse(
+                status_code=exc.code,
+                body=error_body,
+                payload=self._read_json(error_body),
+            )
         except TimeoutError as exc:
             raise RuntimeError(self._connection_error_message("timed out")) from exc
         except ssl.SSLError as exc:
@@ -85,14 +126,34 @@ class ApiTruthPostStore:
                 self._connection_error_message(str(exc.reason))
             ) from exc
 
-    def _read_json(self, payload: bytes) -> dict[str, Any]:
+    def _is_existing_post_response(self, response: BackendPostResponse) -> bool:
+        if response.status_code == 200:
+            return True
+
+        if response.status_code != 409:
+            return False
+
+        body = response.body.lower()
+        return "duplicate" in body or "already" in body or "exists" in body
+
+    def _read_json(self, payload: str) -> dict[str, Any]:
         if not payload:
             return {}
 
-        parsed = json.loads(payload.decode("utf-8"))
+        try:
+            parsed = json.loads(payload)
+        except json.JSONDecodeError:
+            return {}
+
         if not isinstance(parsed, dict):
-            raise RuntimeError("Backend returned a non-object JSON response.")
+            return {}
         return parsed
+
+    def _compact_response_body(self, body: str, max_length: int = 2000) -> str:
+        compacted = " ".join(body.split())
+        if len(compacted) <= max_length:
+            return compacted
+        return f"{compacted[:max_length]}..."
 
     def _connection_error_message(self, reason: str) -> str:
         hint = (
@@ -109,3 +170,6 @@ class ApiTruthPostStore:
             f"Could not reach backend API endpoint {self.endpoint_url}: {reason}. "
             f"{hint}"
         )
+
+    def _open(self, request: Request, timeout: int) -> Any:
+        return urlopen(request, timeout=timeout)

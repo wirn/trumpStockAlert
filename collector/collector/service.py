@@ -53,7 +53,14 @@ class CollectorService:
         save_result = self._save_posts(relevant_posts)
         new_posts = save_result.saved_posts
         logger.info("%s posts were already in the database.", save_result.already_existing_count)
+        logger.info("%s posts failed to save.", save_result.failed_count)
         logger.info("%s new posts were saved.", save_result.saved_count)
+        logger.info(
+            "Collector save summary. Saved: %s. Skipped: %s. Failed: %s.",
+            save_result.saved_count,
+            save_result.already_existing_count,
+            save_result.failed_count,
+        )
         logger.info("Detected %s new posts.", save_result.saved_count)
         if not new_posts:
             logger.info("No new posts were saved.")
@@ -70,6 +77,7 @@ class CollectorService:
         return SavePostsResult(
             saved_posts=saved_posts,
             already_existing_count=len(posts) - len(saved_posts),
+            failed_count=0,
         )
 
     def _filter_by_created_at(
