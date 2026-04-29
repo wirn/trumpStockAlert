@@ -27,7 +27,13 @@ backend/data/*.db-wal
 collector/data/*.json
 truthsocial-fetcher-poc/node_modules/
 truthsocial-fetcher-poc/output/*.json
+truthsocial-fetcher-poc/output/*.html
 truthsocial-fetcher-poc/.auth/
+truthsocial-fetcher-poc/.env
+truthsocial-fetcher-poc/.env.*
+truthsocial-fetcher-poc/playwright-report/
+truthsocial-fetcher-poc/test-results/
+truthsocial-fetcher-poc/.playwright/
 
 # Azure Functions
 collector-function/local.settings.json

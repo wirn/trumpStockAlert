@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "fetch": "node src/fetch-latest-posts.js",
+    "save": "node src/save-latest-posts.js",
+    "test": "node test/run-tests.js",
     "install-browsers": "playwright install chromium"
   },
   "dependencies": {
