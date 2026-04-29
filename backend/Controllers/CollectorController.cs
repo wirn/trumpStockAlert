@@ -10,45 +10,60 @@ namespace TrumpStockAlert.Api.Controllers;
 [Route("api/collector")]
 public sealed class CollectorController(
     IWebHostEnvironment environment,
-    IConfiguration configuration,
     ICollectorRunner collectorRunner,
     ICollectorTestRunner collectorTestRunner,
     ILogger<CollectorController> logger) : ControllerBase
 {
     private const string ApiKeyHeaderName = "x-api-key";
+    private const string ApiKeyEnvironmentVariableName = "Collector__ApiKey";
 
     /// <summary>
     /// Runs the production collector.
     /// </summary>
     /// <remarks>
     /// Intended for scheduled execution, such as an Azure Function Timer Trigger.
-    /// Requires the <c>x-api-key</c> request header matching <c>Collector:ApiKey</c>.
+    /// Requires the <c>x-api-key</c> request header matching <c>Collector__ApiKey</c>.
     /// This endpoint only fetches Truth Social posts and saves new rows; it does not run AI analysis.
     /// </remarks>
     [HttpPost("run")]
     [ProducesResponseType(typeof(CollectorRunResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CollectorRunResponse>> RunCollector(
+        [FromHeader(Name = ApiKeyHeaderName)] string? apiKey,
         CancellationToken cancellationToken)
     {
-        var authorizationResult = AuthorizeCollectorRun();
-        if (authorizationResult is not null)
-        {
-            return authorizationResult;
-        }
+        logger.LogInformation("Collector run request received.");
 
-        if (!environment.IsDevelopment())
+        if (!AuthorizeCollectorRun(apiKey))
         {
-            logger.LogWarning("Collector run endpoint was requested outside Development and was rejected.");
-            return NotFound();
+            return Unauthorized();
         }
 
         try
         {
             var result = await collectorRunner.RunAsync(cancellationToken);
-            return Ok(CollectorRunResponse.FromResult(result));
+            var response = CollectorRunResponse.FromResult(result);
+
+            if (response.Success)
+            {
+                logger.LogInformation(
+                    "Collector run request completed successfully. FetchedPosts: {FetchedPosts}. SavedPosts: {SavedPosts}. SkippedPosts: {SkippedPosts}.",
+                    response.FetchedPosts,
+                    response.SavedPosts,
+                    response.SkippedPosts);
+            }
+            else
+            {
+                logger.LogWarning(
+                    "Collector run request completed with failures. FetchedPosts: {FetchedPosts}. SavedPosts: {SavedPosts}. SkippedPosts: {SkippedPosts}. Message: {Message}",
+                    response.FetchedPosts,
+                    response.SavedPosts,
+                    response.SkippedPosts,
+                    response.Message);
+            }
+
+            return Ok(response);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -122,30 +137,30 @@ public sealed class CollectorController(
         }
     }
 
-    private ActionResult? AuthorizeCollectorRun()
+    private bool AuthorizeCollectorRun(string? apiKey)
     {
-        var configuredApiKey = configuration["Collector:ApiKey"];
+        var configuredApiKey = Environment.GetEnvironmentVariable(ApiKeyEnvironmentVariableName);
         if (string.IsNullOrWhiteSpace(configuredApiKey))
         {
-            logger.LogError("Collector run was rejected because Collector:ApiKey is not configured.");
-            return Unauthorized();
+            logger.LogError(
+                "Collector run was rejected because {EnvironmentVariableName} is not configured.",
+                ApiKeyEnvironmentVariableName);
+            return false;
         }
 
-        if (!Request.Headers.TryGetValue(ApiKeyHeaderName, out var providedValues)
-            || string.IsNullOrWhiteSpace(providedValues.FirstOrDefault()))
+        if (string.IsNullOrWhiteSpace(apiKey))
         {
             logger.LogWarning("Collector run was rejected because the API key header is missing.");
-            return Unauthorized();
+            return false;
         }
 
-        var providedApiKey = providedValues.First()!;
-        if (!ApiKeysMatch(configuredApiKey, providedApiKey))
+        if (!ApiKeysMatch(configuredApiKey, apiKey))
         {
             logger.LogWarning("Collector run was rejected because the API key was invalid.");
-            return Forbid();
+            return false;
         }
 
-        return null;
+        return true;
     }
 
     private static bool ApiKeysMatch(string configuredApiKey, string providedApiKey)
