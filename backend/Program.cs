@@ -65,6 +65,13 @@ builder.Services.AddSingleton<MarketImpactAiResponseParser>();
 
 var app = builder.Build();
 
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "ok",
+    service = "TrumpStockAlert.Api",
+    timestampUtc = DateTimeOffset.UtcNow
+}));
+
 app.Logger.LogInformation(
     "Configured PostgreSQL provider. Apply migrations with 'dotnet ef database update' before running in a new environment.");
 
