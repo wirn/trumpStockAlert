@@ -66,7 +66,7 @@ builder.Services.AddSingleton<MarketImpactAiResponseParser>();
 var app = builder.Build();
 
 app.Logger.LogInformation(
-    "Configured SQL Server provider. Apply migrations with 'dotnet ef database update' before running in a new environment.");
+    "Configured PostgreSQL provider. Apply migrations with 'dotnet ef database update' before running in a new environment.");
 
 if (app.Environment.IsDevelopment())
 {
