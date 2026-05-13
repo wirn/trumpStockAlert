@@ -25,6 +25,10 @@ backend/data/*.db-wal
 
 # Collector data
 collector/data/*.json
+collector/*.egg-info/
+collector/**/*.egg-info/
+collector/.env
+collector/.env.*
 truthsocial-fetcher-poc/node_modules/
 truthsocial-fetcher-poc/output/*.json
 truthsocial-fetcher-poc/output/*.html

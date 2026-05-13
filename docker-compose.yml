@@ -25,5 +25,21 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  collector:
+    build:
+      context: ./collector
+    container_name: trump-collector
+    restart: "no"
+    depends_on:
+      - api
+    environment:
+      COLLECTOR_STORE_MODE: api
+      TRUTH_POST_API_BASE_URL: http://api:8080
+      TRUTH_SOCIAL_USERNAME: ${TRUTH_SOCIAL_USERNAME:-realDonaldTrump}
+      MAX_POSTS: ${COLLECTOR_MAX_POSTS:-10}
+      LOOKBACK_MINUTES: ${COLLECTOR_LOOKBACK_MINUTES:-5}
+      OUTPUT_MODE: console
+    command: ["python", "-m", "collector.main", "--skip-lookback"]
+
 volumes:
   postgres_data:
