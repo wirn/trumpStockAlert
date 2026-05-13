@@ -1,4 +1,17 @@
 services:
+  api:
+    build:
+      context: ./backend
+    container_name: trump-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=trumpstockalert;Username=trumpuser;Password=${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:8080:8080"
+
   postgres:
     image: postgres:17
     container_name: trump-postgres
