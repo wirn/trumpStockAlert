@@ -59,14 +59,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
         modelBuilder.Entity<PostAnalysis>(entity =>
         {
+
             entity.ToTable("post_analyses", table =>
             {
                 table.HasCheckConstraint(
                     "CK_post_analyses_MarketImpactScore_1_100",
-                    "[MarketImpactScore] >= 1 AND [MarketImpactScore] <= 100");
+                    "\"MarketImpactScore\" >= 1 AND \"MarketImpactScore\" <= 100");
+
                 table.HasCheckConstraint(
                     "CK_post_analyses_Confidence_1_100",
-                    "[Confidence] IS NULL OR ([Confidence] >= 1 AND [Confidence] <= 100)");
+                    "\"Confidence\" IS NULL OR (\"Confidence\" >= 1 AND \"Confidence\" <= 100)");
             });
 
             entity.HasKey(analysis => analysis.Id);

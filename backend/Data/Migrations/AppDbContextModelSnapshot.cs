@@ -136,9 +136,9 @@ namespace TrumpStockAlert.Api.Data.Migrations
 
                     b.ToTable("post_analyses", null, t =>
                         {
-                            t.HasCheckConstraint("CK_post_analyses_Confidence_1_100", "[Confidence] IS NULL OR ([Confidence] >= 1 AND [Confidence] <= 100)");
+                            t.HasCheckConstraint("CK_post_analyses_Confidence_1_100", "\"Confidence\" IS NULL OR (\"Confidence\" >= 1 AND \"Confidence\" <= 100)");
 
-                            t.HasCheckConstraint("CK_post_analyses_MarketImpactScore_1_100", "[MarketImpactScore] >= 1 AND [MarketImpactScore] <= 100");
+                            t.HasCheckConstraint("CK_post_analyses_MarketImpactScore_1_100", "\"MarketImpactScore\" >= 1 AND \"MarketImpactScore\" <= 100");
                         });
                 });
 

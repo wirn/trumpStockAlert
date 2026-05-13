@@ -12,7 +12,7 @@ using TrumpStockAlert.Api.Data;
 namespace TrumpStockAlert.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260513110600_InitialPostgresCreate")]
+    [Migration("20260513130428_InitialPostgresCreate")]
     partial class InitialPostgresCreate
     {
         /// <inheritdoc />
@@ -139,9 +139,9 @@ namespace TrumpStockAlert.Api.Data.Migrations
 
                     b.ToTable("post_analyses", null, t =>
                         {
-                            t.HasCheckConstraint("CK_post_analyses_Confidence_1_100", "[Confidence] IS NULL OR ([Confidence] >= 1 AND [Confidence] <= 100)");
+                            t.HasCheckConstraint("CK_post_analyses_Confidence_1_100", "\"Confidence\" IS NULL OR (\"Confidence\" >= 1 AND \"Confidence\" <= 100)");
 
-                            t.HasCheckConstraint("CK_post_analyses_MarketImpactScore_1_100", "[MarketImpactScore] >= 1 AND [MarketImpactScore] <= 100");
+                            t.HasCheckConstraint("CK_post_analyses_MarketImpactScore_1_100", "\"MarketImpactScore\" >= 1 AND \"MarketImpactScore\" <= 100");
                         });
                 });
 

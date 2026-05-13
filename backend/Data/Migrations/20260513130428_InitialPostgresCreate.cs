@@ -53,8 +53,8 @@ namespace TrumpStockAlert.Api.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_post_analyses", x => x.Id);
-                    table.CheckConstraint("CK_post_analyses_Confidence_1_100", "[Confidence] IS NULL OR ([Confidence] >= 1 AND [Confidence] <= 100)");
-                    table.CheckConstraint("CK_post_analyses_MarketImpactScore_1_100", "[MarketImpactScore] >= 1 AND [MarketImpactScore] <= 100");
+                    table.CheckConstraint("CK_post_analyses_Confidence_1_100", "\"Confidence\" IS NULL OR (\"Confidence\" >= 1 AND \"Confidence\" <= 100)");
+                    table.CheckConstraint("CK_post_analyses_MarketImpactScore_1_100", "\"MarketImpactScore\" >= 1 AND \"MarketImpactScore\" <= 100");
                     table.ForeignKey(
                         name: "FK_post_analyses_truth_posts_PostId",
                         column: x => x.PostId,
