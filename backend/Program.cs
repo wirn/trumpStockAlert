@@ -28,16 +28,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseSqlServer(
-        connectionString,
-        sqlServerOptions =>
-        {
-            sqlServerOptions.EnableRetryOnFailure(
-                maxRetryCount: 5,
-                maxRetryDelay: TimeSpan.FromSeconds(10),
-                errorNumbersToAdd: null);
-            sqlServerOptions.CommandTimeout(30);
-        });
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"));
 
     options.EnableDetailedErrors();
 
