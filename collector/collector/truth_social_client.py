@@ -8,6 +8,7 @@ import shutil
 import subprocess
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from inspect import signature
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class TruthSocialClient:
     ) -> list[dict[str, Any]]:
         from truthbrush.api import Api  # type: ignore[import-not-found]
 
-        api = Api(require_auth=False)
+        api = self._create_truthbrush_api(Api)
         posts: list[dict[str, Any]] = []
         for raw_post in api.pull_statuses(self.username, created_after=created_after):
             if isinstance(raw_post, dict):
@@ -59,6 +60,13 @@ class TruthSocialClient:
                 break
 
         return posts
+
+    def _create_truthbrush_api(self, api_type: Any) -> Any:
+        api_parameters = signature(api_type).parameters
+        if "require_auth" in api_parameters:
+            return api_type(require_auth=False)
+
+        return api_type()
 
     def _is_on_or_after(
         self, raw_post: dict[str, Any], created_after: datetime
