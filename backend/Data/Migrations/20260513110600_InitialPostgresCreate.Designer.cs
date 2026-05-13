@@ -12,7 +12,7 @@ using TrumpStockAlert.Api.Data;
 namespace TrumpStockAlert.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260513102847_InitialPostgresCreate")]
+    [Migration("20260513110600_InitialPostgresCreate")]
     partial class InitialPostgresCreate
     {
         /// <inheritdoc />
@@ -40,13 +40,13 @@ namespace TrumpStockAlert.Api.Data.Migrations
 
                     b.Property<string>("Body")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset(7)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ErrorMessage")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("PostAnalysisId")
                         .HasColumnType("integer");
@@ -65,7 +65,7 @@ namespace TrumpStockAlert.Api.Data.Migrations
                         .HasColumnType("character varying(30)");
 
                     b.Property<DateTimeOffset?>("SentAt")
-                        .HasColumnType("datetimeoffset(7)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Subject")
                         .IsRequired()
@@ -98,10 +98,10 @@ namespace TrumpStockAlert.Api.Data.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AffectedAssetsJson")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("AnalyzedAt")
-                        .HasColumnType("datetimeoffset(7)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("AnalyzerVersion")
                         .IsRequired()
@@ -112,7 +112,7 @@ namespace TrumpStockAlert.Api.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset(7)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Direction")
                         .IsRequired()
@@ -126,11 +126,11 @@ namespace TrumpStockAlert.Api.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("RawAiResponse")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Reasoning")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -159,14 +159,14 @@ namespace TrumpStockAlert.Api.Data.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.Property<DateTimeOffset>("CollectedAt")
-                        .HasColumnType("datetimeoffset(7)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset(7)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ExternalId")
                         .IsRequired()
@@ -174,10 +174,10 @@ namespace TrumpStockAlert.Api.Data.Migrations
                         .HasColumnType("character varying(128)");
 
                     b.Property<string>("RawJson")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("SavedAtUtc")
-                        .HasColumnType("datetimeoffset(7)");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Source")
                         .IsRequired()

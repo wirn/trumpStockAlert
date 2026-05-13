@@ -36,23 +36,22 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasMaxLength(2048);
 
             entity.Property(post => post.Content)
-                .IsRequired()
-                .HasColumnType("nvarchar(max)");
+                .IsRequired();
+         
 
             entity.Property(post => post.CreatedAt)
-                .IsRequired()
-                .HasColumnType("datetimeoffset(7)");
+                .IsRequired();
+                
 
             entity.Property(post => post.CollectedAt)
-                .IsRequired()
-                .HasColumnType("datetimeoffset(7)");
+                .IsRequired();
+                
 
             entity.Property(post => post.SavedAtUtc)
-                .IsRequired()
-                .HasColumnType("datetimeoffset(7)");
+                .IsRequired();
+                
 
-            entity.Property(post => post.RawJson)
-                .HasColumnType("nvarchar(max)");
+            entity.Property(post => post.RawJson);
 
             entity.HasIndex(post => new { post.Source, post.ExternalId })
                 .IsUnique();
@@ -80,26 +79,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasMaxLength(30);
 
             entity.Property(analysis => analysis.Reasoning)
-                .IsRequired()
-                .HasColumnType("nvarchar(max)");
+                .IsRequired();
 
-            entity.Property(analysis => analysis.AffectedAssetsJson)
-                .HasColumnType("nvarchar(max)");
+            entity.Property(analysis => analysis.AffectedAssetsJson);
 
             entity.Property(analysis => analysis.AnalyzerVersion)
                 .IsRequired()
                 .HasMaxLength(50);
 
-            entity.Property(analysis => analysis.RawAiResponse)
-                .HasColumnType("nvarchar(max)");
+            entity.Property(analysis => analysis.RawAiResponse);
 
             entity.Property(analysis => analysis.AnalyzedAt)
-                .IsRequired()
-                .HasColumnType("datetimeoffset(7)");
+                .IsRequired();
 
             entity.Property(analysis => analysis.CreatedAt)
-                .IsRequired()
-                .HasColumnType("datetimeoffset(7)");
+                .IsRequired();
 
             entity.HasOne(analysis => analysis.Post)
                 .WithOne(post => post.Analysis)
@@ -135,25 +129,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasMaxLength(300);
 
             entity.Property(alert => alert.Body)
-                .IsRequired()
-                .HasColumnType("nvarchar(max)");
+                .IsRequired();
 
             entity.Property(alert => alert.Threshold)
                 .IsRequired();
 
-            entity.Property(alert => alert.SentAt)
-                .HasColumnType("datetimeoffset(7)");
+            entity.Property(alert => alert.SentAt);
 
             entity.Property(alert => alert.SendStatus)
                 .IsRequired()
                 .HasMaxLength(30);
 
-            entity.Property(alert => alert.ErrorMessage)
-                .HasColumnType("nvarchar(max)");
+            entity.Property(alert => alert.ErrorMessage);
 
             entity.Property(alert => alert.CreatedAt)
-                .IsRequired()
-                .HasColumnType("datetimeoffset(7)");
+                .IsRequired();
 
             entity.HasOne(alert => alert.Post)
                 .WithMany(post => post.Alerts)

@@ -22,11 +22,11 @@ namespace TrumpStockAlert.Api.Data.Migrations
                     Author = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     ExternalId = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     Url = table.Column<string>(type: "character varying(2048)", maxLength: 2048, nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false),
-                    CollectedAt = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false),
-                    SavedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false),
-                    RawJson = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CollectedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    SavedAtUtc = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    RawJson = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -42,13 +42,13 @@ namespace TrumpStockAlert.Api.Data.Migrations
                     PostId = table.Column<int>(type: "integer", nullable: false),
                     MarketImpactScore = table.Column<int>(type: "integer", nullable: false),
                     Direction = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    Reasoning = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AffectedAssetsJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Reasoning = table.Column<string>(type: "text", nullable: false),
+                    AffectedAssetsJson = table.Column<string>(type: "text", nullable: true),
                     Confidence = table.Column<int>(type: "integer", nullable: true),
                     AnalyzerVersion = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    RawAiResponse = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AnalyzedAt = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false)
+                    RawAiResponse = table.Column<string>(type: "text", nullable: true),
+                    AnalyzedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -74,12 +74,12 @@ namespace TrumpStockAlert.Api.Data.Migrations
                     AlertType = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
                     Recipient = table.Column<string>(type: "character varying(320)", maxLength: 320, nullable: false),
                     Subject = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: false),
-                    Body = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Body = table.Column<string>(type: "text", nullable: false),
                     Threshold = table.Column<int>(type: "integer", nullable: false),
-                    SentAt = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: true),
+                    SentAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     SendStatus = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: false),
-                    ErrorMessage = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false)
+                    ErrorMessage = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
