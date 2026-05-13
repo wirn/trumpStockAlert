@@ -113,7 +113,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             {
                 table.HasCheckConstraint(
                     "CK_alerts_Threshold_1_100",
-                    "[Threshold] >= 1 AND [Threshold] <= 100");
+                    "\"Threshold\" >= 1 AND \"Threshold\" <= 100");
             });
 
             entity.HasKey(alert => alert.Id);

@@ -84,7 +84,7 @@ namespace TrumpStockAlert.Api.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_alerts", x => x.Id);
-                    table.CheckConstraint("CK_alerts_Threshold_1_100", "[Threshold] >= 1 AND [Threshold] <= 100");
+                    table.CheckConstraint("CK_alerts_Threshold_1_100", "\"Threshold\" >= 1 AND \"Threshold\" <= 100");
                     table.ForeignKey(
                         name: "FK_alerts_post_analyses_PostAnalysisId",
                         column: x => x.PostAnalysisId,

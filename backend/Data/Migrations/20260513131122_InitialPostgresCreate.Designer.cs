@@ -12,7 +12,7 @@ using TrumpStockAlert.Api.Data;
 namespace TrumpStockAlert.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260513130428_InitialPostgresCreate")]
+    [Migration("20260513131122_InitialPostgresCreate")]
     partial class InitialPostgresCreate
     {
         /// <inheritdoc />
@@ -85,7 +85,7 @@ namespace TrumpStockAlert.Api.Data.Migrations
 
                     b.ToTable("alerts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_alerts_Threshold_1_100", "[Threshold] >= 1 AND [Threshold] <= 100");
+                            t.HasCheckConstraint("CK_alerts_Threshold_1_100", "\"Threshold\" >= 1 AND \"Threshold\" <= 100");
                         });
                 });
 

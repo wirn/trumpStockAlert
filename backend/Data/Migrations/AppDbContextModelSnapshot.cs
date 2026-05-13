@@ -82,7 +82,7 @@ namespace TrumpStockAlert.Api.Data.Migrations
 
                     b.ToTable("alerts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_alerts_Threshold_1_100", "[Threshold] >= 1 AND [Threshold] <= 100");
+                            t.HasCheckConstraint("CK_alerts_Threshold_1_100", "\"Threshold\" >= 1 AND \"Threshold\" <= 100");
                         });
                 });
 
