@@ -66,7 +66,14 @@
     - [x] 6j. Verifiera sparade poster i databasen
 
 - [x] 7. Manuell trigger
-- [ ] 8. Scheduler
+- [~] 8. Scheduler
+    - [x] Docker Compose kör `collector-scheduler` med `restart: unless-stopped`.
+    - [x] Schedulern anropar `POST http://api:8080/api/collector/run` var femte minut.
+    - [x] API-nyckel skickas via `X-TrumpStockAlert-Scheduler-Key` från `SCHEDULER_API_KEY`.
+    - [x] Kan stängas av med `COLLECTOR_SCHEDULER_ENABLED=false`.
+    - [x] Varje körning loggar UTC-timestamp, HTTP-status och response body eller curl-fel.
+    - [x] Dublettskydd hanteras av befintlig collector/API/databas-unikhet, inte av schedulern.
+    - [ ] Verifiera på server med Docker: `docker compose up -d --build` och `docker compose logs -f collector-scheduler`.
 - [ ] 9. AI-analys
 - [ ] 10. Spara AI-analys
 

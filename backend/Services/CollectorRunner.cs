@@ -68,6 +68,13 @@ public sealed class CollectorRunner(
             {
                 var request = TruthSocialPostNormalizer.Normalize(username, rawPost, collectedAt);
                 externalId = request.ExternalId;
+                if (TruthSocialPostNormalizer.IsFallbackContent(request.Content))
+                {
+                    logger.LogInformation(
+                        "No human-readable content found for Truth Social post {ExternalId}; storing fallback content.",
+                        externalId);
+                }
+
                 var saveResult = await truthPostService.SaveAsync(request, cancellationToken);
 
                 if (saveResult.Created)

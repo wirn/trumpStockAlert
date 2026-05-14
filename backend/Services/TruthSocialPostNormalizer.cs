@@ -7,6 +7,8 @@ namespace TrumpStockAlert.Api.Services;
 
 public static partial class TruthSocialPostNormalizer
 {
+    public const string NoTextContent = "[No text content]";
+
     public static CreateTruthPostRequest Normalize(
         string username,
         JsonElement rawPost,
@@ -37,6 +39,11 @@ public static partial class TruthSocialPostNormalizer
         return rawPost.ValueKind == JsonValueKind.Object
             ? OptionalString(rawPost, "id")
             : null;
+    }
+
+    public static bool IsFallbackContent(string content)
+    {
+        return string.Equals(content.Trim(), NoTextContent, StringComparison.Ordinal);
     }
 
     private static string RequiredString(JsonElement element, string propertyName)
@@ -79,15 +86,17 @@ public static partial class TruthSocialPostNormalizer
         var candidates = new[]
         {
             CleanOptionalString(rawPost, "content"),
+            CleanOptionalString(rawPost, "spoiler_text"),
             CleanOptionalString(rawPost, "text"),
             CleanOptionalString(rawPost, "title"),
             ContentFromCard(rawPost),
             ContentFromEmbeddedPost(rawPost, "quote"),
-            ContentFromEmbeddedPost(rawPost, "reblog")
+            ContentFromEmbeddedPost(rawPost, "reblog"),
+            ContentFromMediaAttachments(rawPost)
         };
 
         return candidates.FirstOrDefault(candidate => !string.IsNullOrWhiteSpace(candidate))
-            ?? "[No text content]";
+            ?? NoTextContent;
     }
 
     private static string? CleanOptionalString(JsonElement element, string propertyName)
@@ -119,16 +128,91 @@ public static partial class TruthSocialPostNormalizer
         }
 
         return CleanOptionalString(embedded, "content")
+            ?? CleanOptionalString(embedded, "spoiler_text")
             ?? CleanOptionalString(embedded, "text")
             ?? CleanOptionalString(embedded, "title")
-            ?? ContentFromCard(embedded);
+            ?? ContentFromCard(embedded)
+            ?? ContentFromMediaAttachments(embedded);
     }
 
     private static string CleanContent(string value)
     {
-        var withoutTags = HtmlTagRegex().Replace(value, " ");
-        var decoded = WebUtility.HtmlDecode(withoutTags);
-        return WhitespaceRegex().Replace(decoded, " ").Trim();
+        var decoded = WebUtility.HtmlDecode(value);
+        var withoutTags = HtmlTagRegex().Replace(decoded, " ");
+        var decodedWithoutTags = WebUtility.HtmlDecode(withoutTags);
+        return WhitespaceRegex().Replace(decodedWithoutTags, " ").Trim();
+    }
+
+    private static string? ContentFromMediaAttachments(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Object
+            || !element.TryGetProperty("media_attachments", out var mediaAttachments)
+            || mediaAttachments.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var descriptions = mediaAttachments
+            .EnumerateArray()
+            .SelectMany(ContentFromMediaAttachment)
+            .Where(description => !string.IsNullOrWhiteSpace(description))
+            .ToList();
+
+        return descriptions.Count == 0
+            ? null
+            : WhitespaceRegex().Replace(string.Join(" ", descriptions), " ").Trim();
+    }
+
+    private static IEnumerable<string> ContentFromMediaAttachment(JsonElement attachment)
+    {
+        if (attachment.ValueKind != JsonValueKind.Object)
+        {
+            yield break;
+        }
+
+        var directDescription = CleanOptionalString(attachment, "description")
+            ?? CleanOptionalString(attachment, "title")
+            ?? CleanOptionalString(attachment, "name");
+        if (!string.IsNullOrWhiteSpace(directDescription))
+        {
+            yield return directDescription;
+        }
+
+        if (attachment.TryGetProperty("meta", out var meta)
+            && meta.ValueKind == JsonValueKind.Object)
+        {
+            var metaDescription = ContentFromMediaMeta(meta);
+            if (!string.IsNullOrWhiteSpace(metaDescription))
+            {
+                yield return metaDescription;
+            }
+        }
+    }
+
+    private static string? ContentFromMediaMeta(JsonElement meta)
+    {
+        var directDescription = CleanOptionalString(meta, "description")
+            ?? CleanOptionalString(meta, "title")
+            ?? CleanOptionalString(meta, "name");
+        if (!string.IsNullOrWhiteSpace(directDescription))
+        {
+            return directDescription;
+        }
+
+        foreach (var nestedName in new[] { "original", "small", "focus" })
+        {
+            if (meta.TryGetProperty(nestedName, out var nested)
+                && nested.ValueKind == JsonValueKind.Object)
+            {
+                var nestedDescription = ContentFromMediaMeta(nested);
+                if (!string.IsNullOrWhiteSpace(nestedDescription))
+                {
+                    return nestedDescription;
+                }
+            }
+        }
+
+        return null;
     }
 
     [GeneratedRegex("<[^>]+>")]

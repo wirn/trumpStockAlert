@@ -20,6 +20,24 @@ public sealed class TruthPostService(
         var existing = await FindByExternalKeyAsync(source, externalId, cancellationToken);
         if (existing is not null)
         {
+            if (ShouldUpgradeContent(existing.Content, request.Content))
+            {
+                existing.Content = request.Content.Trim();
+                existing.Url = request.Url.Trim();
+                existing.RawJson = request.Raw.HasValue
+                    ? JsonSerializer.Serialize(request.Raw.Value)
+                    : existing.RawJson;
+                existing.CollectedAt = request.CollectedAt.ToUniversalTime();
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+
+                logger.LogInformation(
+                    "Updated fallback content for existing truth post {Source}/{ExternalId} row {Id}.",
+                    source,
+                    externalId,
+                    existing.Id);
+            }
+
             logger.LogInformation(
                 "Truth post already exists for {Source}/{ExternalId}; returning existing row {Id}.",
                 source,
@@ -104,5 +122,16 @@ public sealed class TruthPostService(
             .FirstOrDefaultAsync(
                 post => post.Source == source && post.ExternalId == externalId,
                 cancellationToken);
+    }
+
+    private static bool ShouldUpgradeContent(string existingContent, string incomingContent)
+    {
+        var existing = existingContent.Trim();
+        var incoming = incomingContent.Trim();
+
+        return (string.IsNullOrWhiteSpace(existing)
+                || TruthSocialPostNormalizer.IsFallbackContent(existing))
+            && !string.IsNullOrWhiteSpace(incoming)
+            && !TruthSocialPostNormalizer.IsFallbackContent(incoming);
     }
 }

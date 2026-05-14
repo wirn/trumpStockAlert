@@ -45,5 +45,18 @@ services:
       TRUTHSOCIAL_PASSWORD: ${TRUTHSOCIAL_PASSWORD:-}
     command: ["python", "-m", "collector.main", "--skip-lookback"]
 
+  collector-scheduler:
+    build:
+      context: ./collector-scheduler
+    container_name: trump-collector-scheduler
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      COLLECTOR_SCHEDULER_ENABLED: ${COLLECTOR_SCHEDULER_ENABLED:-true}
+      COLLECTOR_SCHEDULER_INTERVAL_SECONDS: ${COLLECTOR_SCHEDULER_INTERVAL_SECONDS:-300}
+      COLLECTOR_SCHEDULER_URL: http://api:8080/api/collector/run
+      SCHEDULER_API_KEY: ${SCHEDULER_API_KEY:-}
+
 volumes:
   postgres_data:
