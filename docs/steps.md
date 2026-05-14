@@ -71,9 +71,10 @@
     - [x] Schedulern anropar `POST http://api:8080/api/collector/run` var femte minut.
     - [x] API-nyckel skickas via `X-TrumpStockAlert-Scheduler-Key` från `SCHEDULER_API_KEY`.
     - [x] Kan stängas av med `COLLECTOR_SCHEDULER_ENABLED=false`.
+    - [x] Väntar på `http://api:8080/health` innan första collectorkörningen.
     - [x] Varje körning loggar UTC-timestamp, HTTP-status och response body eller curl-fel.
     - [x] Dublettskydd hanteras av befintlig collector/API/databas-unikhet, inte av schedulern.
-    - [ ] Verifiera på server med Docker: `docker compose up -d --build` och `docker compose logs -f collector-scheduler`.
+    - [ ] Verifiera på server med Docker: `docker compose up -d --build --force-recreate collector-scheduler` och `docker compose logs -f collector-scheduler`.
 - [ ] 9. AI-analys
 - [ ] 10. Spara AI-analys
 
