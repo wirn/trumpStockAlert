@@ -8,6 +8,7 @@ public sealed class CollectorRunner(
 {
     public async Task<CollectorRunResult> RunAsync(CancellationToken cancellationToken)
     {
+        var startedAt = DateTimeOffset.UtcNow;
         var username = configuration["Collector:TruthSocialUsername"]?.Trim();
         if (string.IsNullOrWhiteSpace(username))
         {
@@ -32,6 +33,7 @@ public sealed class CollectorRunner(
         }
         catch (TruthSocialCollectorClientException exception)
         {
+            var finishedAt = DateTimeOffset.UtcNow;
             logger.LogWarning(
                 exception,
                 "Production collector run could not fetch Truth Social posts. RequestPath: {RequestPath}. StatusCode: {StatusCode}.",
@@ -41,11 +43,14 @@ public sealed class CollectorRunner(
             return new CollectorRunResult
             {
                 Success = false,
+                StartedAt = startedAt,
+                FinishedAt = finishedAt,
+                DurationMs = (long)(finishedAt - startedAt).TotalMilliseconds,
                 Message = exception.Message,
                 FetchedPosts = 0,
                 SavedPosts = 0,
                 SkippedPosts = 0,
-                Timestamp = DateTimeOffset.UtcNow
+                FailedPosts = 1
             };
         }
 
@@ -86,6 +91,7 @@ public sealed class CollectorRunner(
         }
 
         var success = failedPosts == 0;
+        var completedAt = DateTimeOffset.UtcNow;
 
         logger.LogInformation(
             "Production collector run completed. FetchedPosts: {FetchedPosts}. SavedPosts: {SavedPosts}. SkippedPosts: {SkippedPosts}. FailedPosts: {FailedPosts}.",
@@ -97,13 +103,16 @@ public sealed class CollectorRunner(
         return new CollectorRunResult
         {
             Success = success,
+            StartedAt = startedAt,
+            FinishedAt = completedAt,
+            DurationMs = (long)(completedAt - startedAt).TotalMilliseconds,
             Message = success
                 ? "Collector completed."
                 : $"Collector completed with {failedPosts} failed post(s).",
             FetchedPosts = rawPosts.Count,
             SavedPosts = savedPosts,
             SkippedPosts = skippedPosts,
-            Timestamp = DateTimeOffset.UtcNow
+            FailedPosts = failedPosts
         };
     }
 }

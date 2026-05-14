@@ -60,3 +60,5 @@ __blobstorage__/
 __queuestorage__/
 __tablestorage__/
 .env
+
+docs/keys.md

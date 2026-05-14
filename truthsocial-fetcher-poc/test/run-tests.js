@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { classifySaveResponse, shouldExitWithFailure } from '../src/backend-store.js';
+import { readFetchOptions, readSaveOptions } from '../src/config.js';
 import { collectRawPosts, dedupePosts, normalizeRawPost } from '../src/normalize.js';
 
 const tests = [
@@ -73,6 +74,27 @@ const tests = [
       shouldExitWithFailure({ fetchedPosts: 2, savedPosts: 0, skippedPosts: 2, failedPosts: 0 }),
       false
     );
+  }],
+  ['debug snapshots are disabled by default and default to tmp when enabled', () => {
+    const defaultOptions = readFetchOptions({});
+    assert.equal(defaultOptions.writeDebugSnapshot, false);
+    assert.equal(defaultOptions.debugOutputDir, '/tmp/truthsocial-fetcher-output');
+
+    const enabledOptions = readFetchOptions({
+      WRITE_DEBUG_SNAPSHOT: 'true',
+      DEBUG_OUTPUT_DIR: '/custom/debug'
+    });
+    assert.equal(enabledOptions.writeDebugSnapshot, true);
+    assert.equal(enabledOptions.debugOutputDir, '/custom/debug');
+  }],
+  ['save options do not require output configuration', () => {
+    const options = readSaveOptions({
+      BackendBaseUrl: 'https://backend.example',
+      Collector__ApiKey: 'test-key'
+    });
+
+    assert.equal(options.backendBaseUrl, 'https://backend.example');
+    assert.equal(options.writeDebugSnapshot, false);
   }]
 ];
 

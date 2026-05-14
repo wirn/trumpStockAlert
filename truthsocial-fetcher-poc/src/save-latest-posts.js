@@ -1,10 +1,9 @@
 import { readSaveOptions } from './config.js';
 import { savePostsToBackend, shouldExitWithFailure } from './backend-store.js';
-import { fetchLatestPosts, writePostsJson } from './truthsocial-fetcher.js';
+import { fetchLatestPosts } from './truthsocial-fetcher.js';
 
 const options = readSaveOptions();
 const posts = await fetchLatestPosts(options);
-await writePostsJson(posts, options.outputPath);
 
 const summary = await savePostsToBackend(posts, options);
 for (const failure of summary.failures) {

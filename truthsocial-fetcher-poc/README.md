@@ -21,6 +21,8 @@ TRUTH_SOCIAL_USERNAME=realDonaldTrump
 MAX_POSTS=10
 HEADLESS=true
 OUTPUT_PATH=output/latest-posts.json
+WRITE_DEBUG_SNAPSHOT=false
+DEBUG_OUTPUT_DIR=/tmp/truthsocial-fetcher-output
 ```
 
 Save-to-backend variables:
@@ -29,6 +31,8 @@ Save-to-backend variables:
 BackendBaseUrl=http://localhost:5044
 Collector__ApiKey=<local or Azure app setting value>
 ```
+
+`WRITE_DEBUG_SNAPSHOT` is disabled by default. When enabled, debug HTML is written to `DEBUG_OUTPUT_DIR`, which defaults to `/tmp/truthsocial-fetcher-output`. This avoids writing to `./output` during containerized `npm run save`.
 
 Do not commit secrets. Local `.env*`, generated output, Playwright reports, auth/session folders, and `node_modules` are ignored.
 
@@ -50,7 +54,7 @@ $env:Collector__ApiKey = "<same value configured for the backend>"
 npm run save
 ```
 
-`npm run save` fetches posts, writes the local JSON sample, and POSTs each normalized post to:
+`npm run save` fetches posts and POSTs each normalized post to:
 
 ```text
 {BackendBaseUrl}/api/truth-posts
@@ -190,7 +194,9 @@ az containerapp job create `
     Collector__ApiKey=secretref:collector-api-key `
     TRUTH_SOCIAL_USERNAME="realDonaldTrump" `
     MAX_POSTS="10" `
-    HEADLESS="true"
+    HEADLESS="true" `
+    WRITE_DEBUG_SNAPSHOT="false" `
+    DEBUG_OUTPUT_DIR="/tmp/truthsocial-fetcher-output"
 ```
 
 Use managed identity and ACR pull permissions for production deployments where possible:
@@ -221,6 +227,8 @@ TRUTH_SOCIAL_USERNAME=realDonaldTrump
 MAX_POSTS=10
 HEADLESS=true
 OUTPUT_PATH=/tmp/truthsocial-fetcher/latest-posts.json
+WRITE_DEBUG_SNAPSHOT=false
+DEBUG_OUTPUT_DIR=/tmp/truthsocial-fetcher-output
 ```
 
 Store `Collector__ApiKey` as a Container Apps secret. Do not put it in the image, Dockerfile, README command history, or source control.

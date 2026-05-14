@@ -10,19 +10,20 @@ namespace TrumpStockAlert.Api.Controllers;
 [Route("api/collector")]
 public sealed class CollectorController(
     IWebHostEnvironment environment,
+    IConfiguration configuration,
     ICollectorRunner collectorRunner,
     ICollectorTestRunner collectorTestRunner,
     ILogger<CollectorController> logger) : ControllerBase
 {
-    private const string ApiKeyHeaderName = "x-api-key";
-    private const string ApiKeyEnvironmentVariableName = "Collector__ApiKey";
+    private const string SchedulerKeyHeaderName = "X-TrumpStockAlert-Scheduler-Key";
+    private const string SchedulerApiKeyConfigurationName = "Scheduler:ApiKey";
 
     /// <summary>
     /// Runs the production collector.
     /// </summary>
     /// <remarks>
-    /// Intended for scheduled execution, such as an Azure Function Timer Trigger.
-    /// Requires the <c>x-api-key</c> request header matching <c>Collector__ApiKey</c>.
+    /// Intended for manual execution and future scheduled execution.
+    /// Requires the <c>X-TrumpStockAlert-Scheduler-Key</c> request header matching <c>Scheduler:ApiKey</c>.
     /// This endpoint only fetches Truth Social posts and saves new rows; it does not run AI analysis.
     /// </remarks>
     [HttpPost("run")]
@@ -30,12 +31,12 @@ public sealed class CollectorController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CollectorRunResponse>> RunCollector(
-        [FromHeader(Name = ApiKeyHeaderName)] string? apiKey,
+        [FromHeader(Name = SchedulerKeyHeaderName)] string? schedulerKey,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Collector run request received.");
+        logger.LogInformation("Manual collector run request received.");
 
-        if (!AuthorizeCollectorRun(apiKey))
+        if (!AuthorizeCollectorRun(schedulerKey))
         {
             return Unauthorized();
         }
@@ -48,26 +49,30 @@ public sealed class CollectorController(
             if (response.Success)
             {
                 logger.LogInformation(
-                    "Collector run request completed successfully. FetchedPosts: {FetchedPosts}. SavedPosts: {SavedPosts}. SkippedPosts: {SkippedPosts}.",
-                    response.FetchedPosts,
-                    response.SavedPosts,
-                    response.SkippedPosts);
-            }
-            else
-            {
-                logger.LogWarning(
-                    "Collector run request completed with failures. FetchedPosts: {FetchedPosts}. SavedPosts: {SavedPosts}. SkippedPosts: {SkippedPosts}. Message: {Message}",
-                    response.FetchedPosts,
-                    response.SavedPosts,
-                    response.SkippedPosts,
-                    response.Message);
+                    "Manual collector run completed successfully. FetchedCount: {FetchedCount}. InsertedCount: {InsertedCount}. DuplicateCount: {DuplicateCount}. ErrorCount: {ErrorCount}. DurationMs: {DurationMs}.",
+                    response.FetchedCount,
+                    response.InsertedCount,
+                    response.DuplicateCount,
+                    response.ErrorCount,
+                    response.DurationMs);
+
+                return Ok(response);
             }
 
-            return Ok(response);
+            logger.LogWarning(
+                "Manual collector run failed. FetchedCount: {FetchedCount}. InsertedCount: {InsertedCount}. DuplicateCount: {DuplicateCount}. ErrorCount: {ErrorCount}. DurationMs: {DurationMs}. Message: {Message}",
+                response.FetchedCount,
+                response.InsertedCount,
+                response.DuplicateCount,
+                response.ErrorCount,
+                response.DurationMs,
+                response.Message);
+
+            return StatusCode(StatusCodes.Status500InternalServerError, response);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            logger.LogError(exception, "Production collector run failed before completion.");
+            logger.LogError(exception, "Manual collector run failed before completion.");
             return Problem(
                 title: "Collector run failed.",
                 detail: exception.Message,
@@ -139,24 +144,24 @@ public sealed class CollectorController(
 
     private bool AuthorizeCollectorRun(string? apiKey)
     {
-        var configuredApiKey = Environment.GetEnvironmentVariable(ApiKeyEnvironmentVariableName);
+        var configuredApiKey = configuration[SchedulerApiKeyConfigurationName];
         if (string.IsNullOrWhiteSpace(configuredApiKey))
         {
             logger.LogError(
-                "Collector run was rejected because {EnvironmentVariableName} is not configured.",
-                ApiKeyEnvironmentVariableName);
+                "Manual collector run was rejected because {ConfigurationName} is not configured.",
+                SchedulerApiKeyConfigurationName);
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            logger.LogWarning("Collector run was rejected because the API key header is missing.");
+            logger.LogWarning("Manual collector run was rejected because the scheduler key header is missing.");
             return false;
         }
 
         if (!ApiKeysMatch(configuredApiKey, apiKey))
         {
-            logger.LogWarning("Collector run was rejected because the API key was invalid.");
+            logger.LogWarning("Manual collector run was rejected because the scheduler key was invalid.");
             return false;
         }
 

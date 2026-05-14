@@ -1,13 +1,16 @@
 export const DEFAULT_USERNAME = 'realDonaldTrump';
 export const DEFAULT_MAX_POSTS = 10;
 export const DEFAULT_OUTPUT_PATH = 'output/latest-posts.json';
+export const DEFAULT_DEBUG_OUTPUT_DIR = '/tmp/truthsocial-fetcher-output';
 
 export function readFetchOptions(env = process.env) {
   return {
     username: cleanUsername(env.TRUTH_SOCIAL_USERNAME ?? DEFAULT_USERNAME),
     maxPosts: parsePositiveInt(env.MAX_POSTS, DEFAULT_MAX_POSTS),
     outputPath: env.OUTPUT_PATH ?? DEFAULT_OUTPUT_PATH,
-    headless: (env.HEADLESS ?? 'true').toLowerCase() !== 'false'
+    headless: (env.HEADLESS ?? 'true').toLowerCase() !== 'false',
+    writeDebugSnapshot: parseBoolean(env.WRITE_DEBUG_SNAPSHOT, false),
+    debugOutputDir: env.DEBUG_OUTPUT_DIR?.trim() || DEFAULT_DEBUG_OUTPUT_DIR
   };
 }
 
@@ -35,6 +38,14 @@ function cleanUsername(value) {
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value ?? '', 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseBoolean(value, fallback) {
+  if (typeof value !== 'string' || !value.trim()) {
+    return fallback;
+  }
+
+  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
 }
 
 function requiredText(value, name) {

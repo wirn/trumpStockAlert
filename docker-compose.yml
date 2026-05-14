@@ -9,6 +9,7 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=trumpstockalert;Username=trumpuser;Password=${DB_PASSWORD}
+      Scheduler__ApiKey: ${SCHEDULER_API_KEY:-}
     ports:
       - "127.0.0.1:8080:8080"
 

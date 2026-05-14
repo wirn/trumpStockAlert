@@ -4,6 +4,12 @@ public sealed class CollectorRunResult
 {
     public required bool Success { get; init; }
 
+    public required DateTimeOffset StartedAt { get; init; }
+
+    public required DateTimeOffset FinishedAt { get; init; }
+
+    public required long DurationMs { get; init; }
+
     public required string Message { get; init; }
 
     public required int FetchedPosts { get; init; }
@@ -12,5 +18,5 @@ public sealed class CollectorRunResult
 
     public required int SkippedPosts { get; init; }
 
-    public required DateTimeOffset Timestamp { get; init; }
+    public required int FailedPosts { get; init; }
 }
