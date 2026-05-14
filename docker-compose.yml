@@ -11,7 +11,7 @@ services:
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=trumpstockalert;Username=trumpuser;Password=${DB_PASSWORD}
       Scheduler__ApiKey: ${SCHEDULER_API_KEY:-}
     ports:
-      - "127.0.0.1:8080:8080"
+      - "100.92.230.97:8080:8080"
 
   postgres:
     image: postgres:17
@@ -40,6 +40,8 @@ services:
       MAX_POSTS: ${COLLECTOR_MAX_POSTS:-10}
       LOOKBACK_MINUTES: ${COLLECTOR_LOOKBACK_MINUTES:-5}
       OUTPUT_MODE: console
+      TRUTHSOCIAL_USERNAME: broderfetto
+      TRUTHSOCIAL_PASSWORD: snus4860T!
     command: ["python", "-m", "collector.main", "--skip-lookback"]
 
 volumes:
