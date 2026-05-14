@@ -4,6 +4,9 @@ using TrumpStockAlert.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string FrontendCorsPolicy = "FrontendCors";
+var allowedCorsOrigins = GetAllowedCorsOrigins(builder.Configuration);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -14,11 +17,11 @@ builder.Services.AddSwaggerGen(options =>
 });
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("FrontendDev", policy =>
+    options.AddPolicy(FrontendCorsPolicy, policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.WithOrigins(allowedCorsOrigins)
+            .WithMethods("GET", "POST")
+            .WithHeaders("Content-Type", "X-TrumpStockAlert-Scheduler-Key");
     });
 });
 
@@ -65,13 +68,6 @@ builder.Services.AddSingleton<MarketImpactAiResponseParser>();
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new
-{
-    status = "ok",
-    service = "TrumpStockAlert.Api",
-    timestampUtc = DateTimeOffset.UtcNow
-}));
-
 app.Logger.LogInformation(
     "Configured PostgreSQL provider. Apply migrations with 'dotnet ef database update' before running in a new environment.");
 
@@ -79,10 +75,50 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseCors("FrontendDev");
 }
 
+app.UseCors(FrontendCorsPolicy);
 app.UseHttpsRedirection();
+
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "ok",
+    service = "TrumpStockAlert.Api",
+    timestampUtc = DateTimeOffset.UtcNow
+}));
+
 app.MapControllers();
 
 app.Run();
+
+static string[] GetAllowedCorsOrigins(IConfiguration configuration)
+{
+    var configuredOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+    if (configuredOrigins is { Length: > 0 })
+    {
+        return configuredOrigins
+            .SelectMany(SplitOrigins)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    var configuredOriginList = configuration["Cors:AllowedOrigins"];
+    var origins = SplitOrigins(configuredOriginList).ToArray();
+    if (origins.Length > 0)
+    {
+        return origins;
+    }
+
+    return
+    [
+        "http://100.92.230.97:5173",
+        "http://localhost:5173"
+    ];
+}
+
+static IEnumerable<string> SplitOrigins(string? value)
+{
+    return (value ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Where(origin => !string.IsNullOrWhiteSpace(origin));
+}

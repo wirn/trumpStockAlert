@@ -10,6 +10,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=trumpstockalert;Username=trumpuser;Password=${DB_PASSWORD}
       Scheduler__ApiKey: ${SCHEDULER_API_KEY:-}
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-http://100.92.230.97:5173,http://localhost:5173}
     ports:
       - "100.92.230.97:8080:8080"
 
@@ -40,8 +41,8 @@ services:
       MAX_POSTS: ${COLLECTOR_MAX_POSTS:-10}
       LOOKBACK_MINUTES: ${COLLECTOR_LOOKBACK_MINUTES:-5}
       OUTPUT_MODE: console
-      TRUTHSOCIAL_USERNAME: broderfetto
-      TRUTHSOCIAL_PASSWORD: snus4860T!
+      TRUTHSOCIAL_USERNAME: ${TRUTHSOCIAL_USERNAME:-}
+      TRUTHSOCIAL_PASSWORD: ${TRUTHSOCIAL_PASSWORD:-}
     command: ["python", "-m", "collector.main", "--skip-lookback"]
 
 volumes:
