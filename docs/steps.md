@@ -61,6 +61,7 @@
     - [x] 6e. Spara poster i databasen via API eller direkt DB
     - [x] 6f. Lägg till ExternalId/TruthSocialId
     - [x] 6g. Lägg till unik constraint för att undvika dubletter
+    - [x] 6g.1. Konfigurera `TRUTH_SOCIAL_ACCOUNT_ID` i self-hosting för att hoppa över `/api/v1/accounts/lookup`; username-lookup finns kvar som fallback.
     - [~] 6h. Logga varje collectorkörning i FetcherRun
         - [x] Lagt till `fetcher_runs` för historik över StartedAt, FinishedAt, DurationMs, Status, TriggerType och räknare.
         - [x] Manuell trigger loggas som `Manual`; scheduler-containern skickar trigger-header och loggas som `Scheduler`.

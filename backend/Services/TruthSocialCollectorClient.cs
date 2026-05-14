@@ -19,10 +19,22 @@ public sealed class TruthSocialCollectorClient(
         CancellationToken cancellationToken)
     {
         var normalizedUsername = username.Trim().TrimStart('@');
-        var accountId = configuration["Collector:TruthSocialAccountId"]?.Trim();
-        if (string.IsNullOrWhiteSpace(accountId))
+        var accountId = GetConfiguredAccountId();
+        if (!string.IsNullOrWhiteSpace(accountId))
         {
+            logger.LogInformation(
+                "Using configured Truth Social account id for @{Username}; skipping account lookup.",
+                normalizedUsername);
+        }
+        else
+        {
+            logger.LogInformation(
+                "Truth Social account id is not configured; looking up account id for @{Username}.",
+                normalizedUsername);
             accountId = await LookupAccountIdAsync(normalizedUsername, cancellationToken);
+            logger.LogInformation(
+                "Truth Social account lookup succeeded for @{Username}.",
+                normalizedUsername);
         }
 
         var requestPath = $"/api/v1/accounts/{Uri.EscapeDataString(accountId)}/statuses";
@@ -57,6 +69,24 @@ public sealed class TruthSocialCollectorClient(
             .Take(maxPosts)
             .Select(element => element.Clone())
             .ToList();
+    }
+
+    private string? GetConfiguredAccountId()
+    {
+        var accountId = configuration["Collector:TruthSocialAccountId"]?.Trim();
+        if (!string.IsNullOrWhiteSpace(accountId))
+        {
+            return accountId;
+        }
+
+        accountId = configuration["TruthSocial:AccountId"]?.Trim();
+        if (!string.IsNullOrWhiteSpace(accountId))
+        {
+            return accountId;
+        }
+
+        accountId = configuration["TRUTH_SOCIAL_ACCOUNT_ID"]?.Trim();
+        return string.IsNullOrWhiteSpace(accountId) ? null : accountId;
     }
 
     private async Task<string> LookupAccountIdAsync(
