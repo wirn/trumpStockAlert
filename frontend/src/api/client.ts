@@ -1,4 +1,4 @@
-import type { AnalysisRunResult, CollectorRunResult, PostAnalysis, TruthPost } from '../types/api';
+import type { AnalysisRunResult, CollectorRunResult, FetcherRun, PostAnalysis, TruthPost } from '../types/api';
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const apiBaseUrl = (configuredBaseUrl?.trim() || 'http://localhost:5044').replace(/\/$/, '');
@@ -71,6 +71,10 @@ export async function runCollector(): Promise<CollectorRunResult> {
       'X-TrumpStockAlert-Scheduler-Key': apiKey,
     },
   });
+}
+
+export async function getLatestFetcherRuns(): Promise<FetcherRun[]> {
+  return requestJson<FetcherRun[]>('/api/fetcher-runs/latest');
 }
 
 export function getApiBaseUrl(): string {

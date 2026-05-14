@@ -75,6 +75,7 @@ while true; do
       -X POST \
       -H "Content-Type: application/json" \
       -H "X-TrumpStockAlert-Scheduler-Key: ${SCHEDULER_API_KEY:-}" \
+      -H "X-TrumpStockAlert-Trigger-Type: Scheduler" \
       "$api_url" \
       2>"$error_file"
   )" || curl_exit_code=$?

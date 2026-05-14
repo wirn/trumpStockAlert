@@ -11,6 +11,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<Alert> Alerts => Set<Alert>();
 
+    public DbSet<FetcherRun> FetcherRuns => Set<FetcherRun>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<TruthPost>(entity =>
@@ -160,6 +162,49 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.HasIndex(alert => alert.PostId);
             entity.HasIndex(alert => alert.PostAnalysisId);
             entity.HasIndex(alert => alert.SendStatus);
+        });
+
+        modelBuilder.Entity<FetcherRun>(entity =>
+        {
+            entity.ToTable("fetcher_runs");
+
+            entity.HasKey(run => run.Id);
+
+            entity.Property(run => run.StartedAt)
+                .IsRequired();
+
+            entity.Property(run => run.FinishedAt)
+                .IsRequired();
+
+            entity.Property(run => run.DurationMs)
+                .IsRequired();
+
+            entity.Property(run => run.Status)
+                .IsRequired()
+                .HasMaxLength(40);
+
+            entity.Property(run => run.TriggerType)
+                .IsRequired()
+                .HasMaxLength(40);
+
+            entity.Property(run => run.FetchedCount)
+                .IsRequired();
+
+            entity.Property(run => run.InsertedCount)
+                .IsRequired();
+
+            entity.Property(run => run.DuplicateCount)
+                .IsRequired();
+
+            entity.Property(run => run.ErrorCount)
+                .IsRequired();
+
+            entity.Property(run => run.Message)
+                .IsRequired();
+
+            entity.HasIndex(run => run.StartedAt);
+            entity.HasIndex(run => run.TriggerType);
+            entity.HasIndex(run => run.Status);
         });
     }
 }

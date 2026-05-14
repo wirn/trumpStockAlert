@@ -61,6 +61,7 @@ builder.Services.AddScoped<IPostAnalysisRunner, PostAnalysisRunner>();
 builder.Services.AddScoped<ICollectorProcessRunner, CollectorProcessRunner>();
 builder.Services.AddScoped<ICollectorTestRunner, CollectorTestRunner>();
 builder.Services.AddScoped<ICollectorRunner, CollectorRunner>();
+builder.Services.AddScoped<IFetcherRunService, FetcherRunService>();
 builder.Services.AddHttpClient<ITruthSocialCollectorClient, TruthSocialCollectorClient>(
     TruthSocialCollectorClient.ConfigureHttpClient);
 builder.Services.AddSingleton<MarketImpactPromptBuilder>();

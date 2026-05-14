@@ -13,9 +13,11 @@ public sealed class CollectorController(
     IConfiguration configuration,
     ICollectorRunner collectorRunner,
     ICollectorTestRunner collectorTestRunner,
+    IFetcherRunService fetcherRunService,
     ILogger<CollectorController> logger) : ControllerBase
 {
     private const string SchedulerKeyHeaderName = "X-TrumpStockAlert-Scheduler-Key";
+    private const string TriggerTypeHeaderName = "X-TrumpStockAlert-Trigger-Type";
     private const string SchedulerApiKeyConfigurationName = "Scheduler:ApiKey";
 
     /// <summary>
@@ -32,9 +34,14 @@ public sealed class CollectorController(
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CollectorRunResponse>> RunCollector(
         [FromHeader(Name = SchedulerKeyHeaderName)] string? schedulerKey,
+        [FromHeader(Name = TriggerTypeHeaderName)] string? triggerTypeHeader,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation("Manual collector run request received.");
+        var triggerType = GetTriggerType(triggerTypeHeader);
+        var requestStartedAt = DateTimeOffset.UtcNow;
+        logger.LogInformation(
+            "Collector run request received. TriggerType: {TriggerType}.",
+            triggerType);
 
         if (!AuthorizeCollectorRun(schedulerKey))
         {
@@ -45,11 +52,13 @@ public sealed class CollectorController(
         {
             var result = await collectorRunner.RunAsync(cancellationToken);
             var response = CollectorRunResponse.FromResult(result);
+            await TryLogFetcherRunAsync(triggerType, result, cancellationToken);
 
             if (response.Success)
             {
                 logger.LogInformation(
-                    "Manual collector run completed successfully. FetchedCount: {FetchedCount}. InsertedCount: {InsertedCount}. DuplicateCount: {DuplicateCount}. ErrorCount: {ErrorCount}. DurationMs: {DurationMs}.",
+                    "Collector run completed successfully. TriggerType: {TriggerType}. FetchedCount: {FetchedCount}. InsertedCount: {InsertedCount}. DuplicateCount: {DuplicateCount}. ErrorCount: {ErrorCount}. DurationMs: {DurationMs}.",
+                    triggerType,
                     response.FetchedCount,
                     response.InsertedCount,
                     response.DuplicateCount,
@@ -60,7 +69,8 @@ public sealed class CollectorController(
             }
 
             logger.LogWarning(
-                "Manual collector run failed. FetchedCount: {FetchedCount}. InsertedCount: {InsertedCount}. DuplicateCount: {DuplicateCount}. ErrorCount: {ErrorCount}. DurationMs: {DurationMs}. Message: {Message}",
+                "Collector run failed. TriggerType: {TriggerType}. FetchedCount: {FetchedCount}. InsertedCount: {InsertedCount}. DuplicateCount: {DuplicateCount}. ErrorCount: {ErrorCount}. DurationMs: {DurationMs}. Message: {Message}",
+                triggerType,
                 response.FetchedCount,
                 response.InsertedCount,
                 response.DuplicateCount,
@@ -72,7 +82,15 @@ public sealed class CollectorController(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            logger.LogError(exception, "Manual collector run failed before completion.");
+            logger.LogError(
+                exception,
+                "Collector run failed before completion. TriggerType: {TriggerType}.",
+                triggerType);
+            await TryLogFetcherFailureAsync(
+                triggerType,
+                requestStartedAt,
+                exception.Message,
+                cancellationToken);
             return Problem(
                 title: "Collector run failed.",
                 detail: exception.Message,
@@ -174,5 +192,49 @@ public sealed class CollectorController(
         var providedBytes = Encoding.UTF8.GetBytes(providedApiKey);
         return configuredBytes.Length == providedBytes.Length
             && CryptographicOperations.FixedTimeEquals(configuredBytes, providedBytes);
+    }
+
+    private static string GetTriggerType(string? triggerTypeHeader)
+    {
+        return string.Equals(triggerTypeHeader, FetcherRunTriggerType.Scheduler, StringComparison.OrdinalIgnoreCase)
+            ? FetcherRunTriggerType.Scheduler
+            : FetcherRunTriggerType.Manual;
+    }
+
+    private async Task TryLogFetcherRunAsync(
+        string triggerType,
+        CollectorRunResult result,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await fetcherRunService.LogRunAsync(triggerType, result, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(
+                exception,
+                "Failed to persist FetcherRun for collector run. TriggerType: {TriggerType}.",
+                triggerType);
+        }
+    }
+
+    private async Task TryLogFetcherFailureAsync(
+        string triggerType,
+        DateTimeOffset startedAt,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await fetcherRunService.LogFailureAsync(triggerType, startedAt, message, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(
+                exception,
+                "Failed to persist failed FetcherRun. TriggerType: {TriggerType}.",
+                triggerType);
+        }
     }
 }

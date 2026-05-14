@@ -61,7 +61,12 @@
     - [x] 6e. Spara poster i databasen via API eller direkt DB
     - [x] 6f. Lägg till ExternalId/TruthSocialId
     - [x] 6g. Lägg till unik constraint för att undvika dubletter
-    - [ ] 6h. Logga varje collectorkörning i FetcherRun
+    - [~] 6h. Logga varje collectorkörning i FetcherRun
+        - [x] Lagt till `fetcher_runs` för historik över StartedAt, FinishedAt, DurationMs, Status, TriggerType och räknare.
+        - [x] Manuell trigger loggas som `Manual`; scheduler-containern skickar trigger-header och loggas som `Scheduler`.
+        - [x] Dubletter räknas via befintlig collector/API/databaslogik och sparas som `DuplicateCount`.
+        - [x] `GET /api/fetcher-runs/latest` returnerar de senaste 20 körningarna för felsökning/övervakning.
+        - [ ] Verifiera mot körande PostgreSQL: applicera migrationen och bekräfta att manuella och schemalagda körningar skapar rader.
     - [x] 6i. Testa manuell collectorkörning
     - [x] 6j. Verifiera sparade poster i databasen
 

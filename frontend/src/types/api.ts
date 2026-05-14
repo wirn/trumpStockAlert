@@ -70,3 +70,17 @@ export interface CollectorRunResult {
   skippedPosts?: number | null;
   failedPosts?: number | null;
 }
+
+export interface FetcherRun {
+  id: number;
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  status: string;
+  triggerType: string;
+  fetchedCount: number;
+  insertedCount: number;
+  duplicateCount: number;
+  errorCount: number;
+  message: string;
+}
