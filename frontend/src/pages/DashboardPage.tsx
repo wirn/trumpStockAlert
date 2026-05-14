@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react';
-import { getAnalyses, getTruthPosts, runAnalysis, runCollectorTest } from '../api/client';
-import type { AnalysisRunResult, CollectorRunTestResult, PostAnalysis, TruthPost } from '../types/api';
+import { getAnalyses, getTruthPosts, runAnalysis, runCollector } from '../api/client';
+import type { AnalysisRunResult, CollectorRunResult, PostAnalysis, TruthPost } from '../types/api';
 
 type Filter = 'all' | 'high' | 'not-analyzed' | 'negative' | 'positive' | 'uncertain-neutral';
 
@@ -21,7 +21,7 @@ function DashboardPage() {
   const [collectorRunning, setCollectorRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [runResult, setRunResult] = useState<AnalysisRunResult | null>(null);
-  const [collectorResult, setCollectorResult] = useState<CollectorRunTestResult | null>(null);
+  const [collectorResult, setCollectorResult] = useState<CollectorRunResult | null>(null);
 
   async function refreshData() {
     setLoading(true);
@@ -58,21 +58,25 @@ function DashboardPage() {
     setCollectorResult(null);
 
     try {
-      const result = await runCollectorTest();
+      const result = await runCollector();
       setCollectorResult(result);
 
-      if (result.success) {
+      if (isCollectorSuccess(result)) {
         await refreshData();
       }
     } catch (collectorError) {
-      setError(collectorError instanceof Error ? collectorError.message : 'Failed to run collector test.');
+      setError(collectorError instanceof Error ? collectorError.message : 'Failed to run collector.');
     } finally {
       setCollectorRunning(false);
     }
   }
 
   useEffect(() => {
-    void refreshData();
+    const timeoutId = window.setTimeout(() => {
+      void refreshData();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   const stats = useMemo(() => getStats(posts), [posts]);
@@ -145,41 +149,43 @@ function DashboardPage() {
   );
 }
 
-function CollectorRunOutput({ result }: { result: CollectorRunTestResult }) {
+function CollectorRunOutput({ result }: { result: CollectorRunResult }) {
   return (
-    <details className={result.success ? 'collector-output success-output' : 'collector-output error-output'} open>
-      <summary>
-        Collector test {result.success ? 'succeeded' : 'failed'} - exit code {result.exitCode}
-      </summary>
+    <details className={isCollectorSuccess(result) ? 'collector-output success-output' : 'collector-output error-output'} open>
+      <summary>Collector {result.status}</summary>
       <dl className="collector-meta">
         <div>
           <dt>Finished</dt>
-          <dd>{formatDate(result.timestamp)}</dd>
+          <dd>{formatDate(result.finishedAt)}</dd>
         </div>
         <div>
           <dt>Fetched</dt>
-          <dd>{result.fetchedPosts ?? 'n/a'}</dd>
+          <dd>{result.fetchedCount}</dd>
         </div>
         <div>
-          <dt>Saved</dt>
-          <dd>{result.savedPosts ?? 'n/a'}</dd>
+          <dt>Inserted</dt>
+          <dd>{result.insertedCount}</dd>
+        </div>
+        <div>
+          <dt>Duplicates</dt>
+          <dd>{result.duplicateCount}</dd>
+        </div>
+        <div>
+          <dt>Errors</dt>
+          <dd>{result.errorCount}</dd>
+        </div>
+        <div>
+          <dt>Duration</dt>
+          <dd>{result.durationMs}ms</dd>
         </div>
       </dl>
       <p>{result.message}</p>
-      {result.stdout && (
-        <>
-          <h3>stdout</h3>
-          <pre>{result.stdout}</pre>
-        </>
-      )}
-      {result.stderr && (
-        <>
-          <h3>stderr</h3>
-          <pre>{result.stderr}</pre>
-        </>
-      )}
     </details>
   );
+}
+
+function isCollectorSuccess(result: CollectorRunResult): boolean {
+  return result.success ?? result.status.toLowerCase() === 'completed';
 }
 
 function mergeAnalyses(posts: TruthPost[], analyses: PostAnalysis[]): TruthPost[] {

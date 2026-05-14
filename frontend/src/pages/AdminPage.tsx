@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { getApiBaseUrl, getTruthPosts, runAnalysis, runCollectorTestMode } from '../api/client';
-import type { AnalysisRunResult, CollectorRunTestResult, TruthPost } from '../types/api';
+import { getApiBaseUrl, getTruthPosts, runAnalysis, runCollector } from '../api/client';
+import type { AnalysisRunResult, CollectorRunResult, TruthPost } from '../types/api';
 
 type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -12,8 +12,8 @@ function AdminPage() {
   const [analysisMessage, setAnalysisMessage] = useState('Analysis has not been run from this console yet.');
   const [analysisResult, setAnalysisResult] = useState<AnalysisRunResult | null>(null);
   const [collectorStatus, setCollectorStatus] = useState<AsyncStatus>('idle');
-  const [collectorMessage, setCollectorMessage] = useState('Collector test has not been run from this console yet.');
-  const [collectorResult, setCollectorResult] = useState<CollectorRunTestResult | null>(null);
+  const [collectorMessage, setCollectorMessage] = useState('Collector has not been run from this console yet.');
+  const [collectorResult, setCollectorResult] = useState<CollectorRunResult | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
 
   async function refreshPosts({ announce = true }: { announce?: boolean } = {}) {
@@ -54,20 +54,21 @@ function AdminPage() {
 
   async function handleRunCollectorTest() {
     setCollectorStatus('loading');
-    setCollectorMessage('Running collector test mode...');
+    setCollectorMessage('Running collector...');
     setCollectorResult(null);
 
     try {
-      const result = await runCollectorTestMode();
+      const result = await runCollector();
+      const succeeded = isCollectorSuccess(result);
       setCollectorResult(result);
-      setCollectorStatus(result.success ? 'success' : 'error');
-      setCollectorMessage(result.message || (result.success ? 'Collector test completed.' : 'Collector test failed.'));
-      if (result.success) {
+      setCollectorStatus(succeeded ? 'success' : 'error');
+      setCollectorMessage(result.message || (succeeded ? 'Collector completed.' : 'Collector failed.'));
+      if (succeeded) {
         await refreshPosts({ announce: false });
       }
     } catch (error) {
       setCollectorStatus('error');
-      setCollectorMessage(error instanceof Error ? error.message : 'Failed to run collector test.');
+      setCollectorMessage(error instanceof Error ? error.message : 'Failed to run collector.');
     } finally {
       statusRef.current?.focus();
     }
@@ -111,9 +112,9 @@ function AdminPage() {
         <div className="admin-actions-grid">
           <AdminCard
             icon="T1"
-            code="POST /api/collector/run-test"
+            code="POST /api/collector/run"
             title="Run Collector Test"
-            description="Fetch a limited test batch through the collector test-mode flow."
+            description="Trigger the protected collector run endpoint, then refresh stored posts."
             action={isCollectorRunning ? 'Running...' : 'Run Collector Test'}
             disabled={isBusy}
             onAction={() => void handleRunCollectorTest()}
@@ -145,7 +146,7 @@ function AdminPage() {
             <div className="run-status-grid">
               <Metric label="Posts loaded" value={posts.length.toString()} />
               <Metric label="Analyzed posts" value={analyzedPosts.toString()} />
-              <Metric label="Collector saved" value={formatCount(collectorResult?.savedPosts)} />
+              <Metric label="Collector inserted" value={formatCount(collectorResult?.insertedCount)} />
               <Metric label="Failed analysis" value={(analysisResult?.failedCount ?? 0).toString()} tone={analysisResult?.failedCount ? 'danger' : undefined} />
               <Metric label="Latest analysis" value={latestAnalyzedAt ? formatDate(latestAnalyzedAt) : 'Not yet'} />
             </div>
@@ -167,8 +168,8 @@ function AdminPage() {
                 <dd>GET /api/truth-posts <span>Live</span></dd>
               </div>
               <div>
-                <dt>Collector test endpoint</dt>
-                <dd>POST /api/collector/run-test</dd>
+                <dt>Collector endpoint</dt>
+                <dd>POST /api/collector/run</dd>
               </div>
             </dl>
           </section>
@@ -183,40 +184,41 @@ function AdminPage() {
               <span />
               <span />
             </div>
-            <strong id="collector-response-heading">Collector Test Result</strong>
+            <strong id="collector-response-heading">Collector Result</strong>
             <span>{collectorStatus}</span>
           </div>
           <div className="collector-result">
             <dl className="admin-post-meta">
               <div>
-                <dt>Success</dt>
-                <dd>{collectorResult.success ? 'Yes' : 'No'}</dd>
+                <dt>Status</dt>
+                <dd>{collectorResult.status}</dd>
               </div>
               <div>
                 <dt>Fetched posts</dt>
-                <dd>{formatCount(collectorResult.fetchedPosts)}</dd>
+                <dd>{formatCount(collectorResult.fetchedCount)}</dd>
               </div>
               <div>
-                <dt>Saved posts</dt>
-                <dd>{formatCount(collectorResult.savedPosts)}</dd>
+                <dt>Inserted posts</dt>
+                <dd>{formatCount(collectorResult.insertedCount)}</dd>
               </div>
               <div>
-                <dt>Timestamp</dt>
-                <dd>{formatDate(collectorResult.timestamp)}</dd>
+                <dt>Duplicate posts</dt>
+                <dd>{formatCount(collectorResult.duplicateCount)}</dd>
               </div>
               <div>
-                <dt>Exit code</dt>
-                <dd>{collectorResult.exitCode}</dd>
+                <dt>Errors</dt>
+                <dd>{formatCount(collectorResult.errorCount)}</dd>
               </div>
               <div>
-                <dt>Timed out</dt>
-                <dd>{collectorResult.timedOut ? 'Yes' : 'No'}</dd>
+                <dt>Duration</dt>
+                <dd>{collectorResult.durationMs}ms</dd>
+              </div>
+              <div>
+                <dt>Finished</dt>
+                <dd>{formatDate(collectorResult.finishedAt)}</dd>
               </div>
             </dl>
             <p>{collectorResult.message}</p>
-            {(collectorResult.stdout || collectorResult.stderr) && (
-              <pre className="api-response">{formatCollectorOutput(collectorResult)}</pre>
-            )}
           </div>
         </section>
       )}
@@ -392,13 +394,6 @@ function formatCount(value?: number | null): string {
   return value === null || value === undefined ? 'n/a' : value.toString();
 }
 
-function formatCollectorOutput(result: CollectorRunTestResult): string {
-  const sections = [];
-  if (result.stdout) sections.push(`stdout\n${result.stdout}`);
-  if (result.stderr) sections.push(`stderr\n${result.stderr}`);
-  return sections.join('\n\n');
-}
-
 function formatDate(value?: string | null): string {
   if (!value) return 'n/a';
   const date = new Date(value);
@@ -408,6 +403,10 @@ function formatDate(value?: string | null): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
+}
+
+function isCollectorSuccess(result: CollectorRunResult): boolean {
+  return result.success ?? result.status.toLowerCase() === 'completed';
 }
 
 export default AdminPage;
