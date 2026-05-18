@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Four separate components live in the repo root:
 
-| Directory | Technology | Purpose |
-|---|---|---|
-| `backend/` | ASP.NET Core 10 (C#) | REST API, data persistence, AI analysis |
-| `collector/` | Python | Fetches posts from Truth Social |
+| Directory             | Technology                               | Purpose                                            |
+| --------------------- | ---------------------------------------- | -------------------------------------------------- |
+| `backend/`            | ASP.NET Core 10 (C#)                     | REST API, data persistence, AI analysis            |
+| `collector/`          | Python                                   | Fetches posts from Truth Social                    |
 | `collector-function/` | Azure Functions v4 (C#, isolated worker) | Timer trigger that calls the backend on a schedule |
-| `frontend/` | React 19, Vite, TypeScript, SCSS | Admin/dashboard SPA |
+| `frontend/`           | React 19, Vite, TypeScript, SCSS         | Admin/dashboard SPA                                |
 
 ## Commands
 
@@ -26,8 +26,13 @@ dotnet ef migrations add <Name>    # create a new migration
 ```
 
 The backend requires a PostgreSQL connection string in `appsettings.Development.json` or user secrets:
+
 ```json
-{ "ConnectionStrings": { "DefaultConnection": "Host=...;Database=...;Username=...;Password=..." } }
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=...;Database=...;Username=...;Password=..."
+  }
+}
 ```
 
 ### Frontend
@@ -41,10 +46,13 @@ npm run lint
 ```
 
 Create `frontend/.env.local` for local overrides:
+
 ```
 VITE_API_BASE_URL=http://localhost:5044
 VITE_SCHEDULER_API_KEY=<your-scheduler-api-key>
 ```
+
+when using typescript, always use strict mode
 
 ### Python collector
 
@@ -79,12 +87,14 @@ func start     # requires Azure Functions Core Tools
 ### Analyzer selection
 
 `IMarketImpactAnalyzer` is factory-resolved in `Program.cs` based on `Analyzer:Provider` config:
+
 - `"OpenAI"` → `OpenAiMarketImpactAnalyzer` (calls OpenAI Chat Completions with structured JSON output; up to 3 retries on transient errors)
 - anything else → `MockMarketImpactAnalyzer` (returns deterministic fake data)
 
 ### Dual collector implementations
 
 There are **two parallel collector paths**:
+
 - `CollectorRunner` + `TruthSocialCollectorClient`: pure .NET HTTP client, used for the scheduled/production flow.
 - `CollectorProcessRunner`: spawns a PowerShell subprocess to run the Python `collector/` package, used by `CollectorController.RunCollectorTestMode` in Development only.
 
@@ -93,6 +103,7 @@ The Python collector (`collector/`) is a standalone package. It supports `--test
 ### Database schema
 
 PostgreSQL via EF Core. Four tables (snake_case names):
+
 - `truth_posts` — raw post content + metadata; unique index on `(source, external_id)`
 - `post_analyses` — one-to-one with `truth_posts`; `MarketImpactScore` and `Confidence` constrained 1–100
 - `alerts` — many-to-one with `truth_posts` and `post_analyses`
@@ -104,16 +115,16 @@ Migrations live in `backend/Data/Migrations/`.
 
 All backend config follows ASP.NET Core conventions (appsettings → env vars with `__` separator):
 
-| Key | Notes |
-|---|---|
-| `ConnectionStrings:DefaultConnection` | PostgreSQL |
-| `Analyzer:Provider` | `"OpenAI"` or omit for mock |
-| `OpenAI:ApiKey` | Store in user secrets locally |
-| `OpenAI:Model` | e.g. `gpt-4o-mini` |
-| `Scheduler:ApiKey` | Required for `POST /api/collector/run` |
-| `Collector:TruthSocialUsername` | e.g. `realDonaldTrump` |
-| `Collector:TruthSocialAccountId` | Optional; skips account lookup API call |
-| `Collector:MaxPosts` | Default 10 |
-| `Cors:AllowedOrigins` | Comma-separated or array; defaults to `localhost:5173` |
+| Key                                   | Notes                                                  |
+| ------------------------------------- | ------------------------------------------------------ |
+| `ConnectionStrings:DefaultConnection` | PostgreSQL                                             |
+| `Analyzer:Provider`                   | `"OpenAI"` or omit for mock                            |
+| `OpenAI:ApiKey`                       | Store in user secrets locally                          |
+| `OpenAI:Model`                        | e.g. `gpt-4o-mini`                                     |
+| `Scheduler:ApiKey`                    | Required for `POST /api/collector/run`                 |
+| `Collector:TruthSocialUsername`       | e.g. `realDonaldTrump`                                 |
+| `Collector:TruthSocialAccountId`      | Optional; skips account lookup API call                |
+| `Collector:MaxPosts`                  | Default 10                                             |
+| `Cors:AllowedOrigins`                 | Comma-separated or array; defaults to `localhost:5173` |
 
 For the Azure Function, set `BackendBaseUrl` and `Collector:ApiKey` in `local.settings.json` or Azure App Settings.
