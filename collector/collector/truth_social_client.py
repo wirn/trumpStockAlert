@@ -14,11 +14,11 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-class TruthSocialClientError(RuntimeError):
+class TruthbrushClientError(RuntimeError):
     """Raised when Truthbrush cannot fetch posts."""
 
 
-class TruthSocialClient:
+class TruthbrushClient:
     """Fetches recent Truth Social posts using Truthbrush."""
 
     def __init__(self, username: str) -> None:
@@ -33,7 +33,7 @@ class TruthSocialClient:
             logger.warning("Truthbrush Python package import failed; trying CLI fallback.")
             return self._fetch_with_cli(max_posts, created_after)
         except Exception as exc:
-            raise TruthSocialClientError(
+            raise TruthbrushClientError(
                 f"Truthbrush failed while fetching posts for @{self.username}: {exc}"
             ) from exc
 
@@ -95,7 +95,7 @@ class TruthSocialClient:
         self, max_posts: int, created_after: datetime | None = None
     ) -> list[dict[str, Any]]:
         if shutil.which("truthbrush") is None:
-            raise TruthSocialClientError(
+            raise TruthbrushClientError(
                 "Truthbrush is not installed. Install it with `pip install truthbrush`."
             )
 
@@ -113,14 +113,14 @@ class TruthSocialClient:
                 timeout=120,
             )
         except FileNotFoundError as exc:
-            raise TruthSocialClientError(
+            raise TruthbrushClientError(
                 "Truthbrush executable was not found on PATH."
             ) from exc
         except subprocess.TimeoutExpired as exc:
-            raise TruthSocialClientError("Truthbrush command timed out.") from exc
+            raise TruthbrushClientError("Truthbrush command timed out.") from exc
         except subprocess.CalledProcessError as exc:
             stderr = exc.stderr.strip() if exc.stderr else "no stderr"
-            raise TruthSocialClientError(
+            raise TruthbrushClientError(
                 f"Truthbrush command failed with exit code {exc.returncode}: {stderr}"
             ) from exc
 

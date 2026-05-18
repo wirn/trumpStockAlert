@@ -4,7 +4,7 @@ import sys
 import types
 from datetime import UTC, datetime
 
-from collector.truth_social_client import TruthSocialClient
+from collector.truth_social_client import TruthbrushClient
 
 
 def test_fetch_with_python_api_supports_truthbrush_without_require_auth(monkeypatch):
@@ -29,7 +29,7 @@ def test_fetch_with_python_api_supports_truthbrush_without_require_auth(monkeypa
 
     install_truthbrush_api(monkeypatch, Api)
 
-    client = TruthSocialClient("@realDonaldTrump")
+    client = TruthbrushClient("@realDonaldTrump")
     posts = client.fetch_latest_posts(
         max_posts=10,
         created_after=datetime(2026, 4, 29, 8, tzinfo=UTC),
@@ -56,7 +56,7 @@ def test_fetch_with_python_api_uses_require_auth_false_when_supported(monkeypatc
 
     install_truthbrush_api(monkeypatch, Api)
 
-    posts = TruthSocialClient("realDonaldTrump").fetch_latest_posts(max_posts=1)
+    posts = TruthbrushClient("realDonaldTrump").fetch_latest_posts(max_posts=1)
 
     assert [post["id"] for post in posts] == ["1"]
     assert constructor_kwargs == [{"require_auth": False}]

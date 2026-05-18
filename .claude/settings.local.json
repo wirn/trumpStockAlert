@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv\\\\Scripts\\\\python.exe -m pytest tests/ -v)",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\repos\\\\trumpStockAlert\\\\docs\")",
+      "Bash(Out-Null)",
+      "Bash(New-Item -ItemType File -Force \"C:\\\\repos\\\\trumpStockAlert\\\\docs\\\\README.md\")",
+      "PowerShell(New-Item *)"
+    ]
+  }
+}

@@ -10,7 +10,6 @@ from typing import Any
 from collector.models import NormalizedPost
 from collector.normalizer import PostNormalizer
 from collector.post_store_result import SavePostsResult
-from collector.truth_social_client import TruthSocialClient
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class CollectorService:
     def __init__(
         self,
-        client: TruthSocialClient,
+        client: Any,
         normalizer: PostNormalizer,
         post_store: Any,
         output_mode: str = "console",
@@ -39,7 +38,7 @@ class CollectorService:
         )
 
         raw_posts = self.client.fetch_latest_posts(max_posts, created_after=created_after)
-        logger.info("Fetched %s posts from Truthbrush.", len(raw_posts))
+        logger.info("Fetched %s posts from Truth Social.", len(raw_posts))
 
         normalized_posts = self.normalizer.normalize_many(raw_posts)
         relevant_posts = self._filter_by_created_at(normalized_posts, created_after)

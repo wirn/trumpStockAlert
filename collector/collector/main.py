@@ -9,11 +9,11 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from collector.api_truth_post_store import ApiTruthPostStore
+from collector.client_factory import create_client
 from collector.config import CollectorConfig
 from collector.normalizer import PostNormalizer
 from collector.service import CollectorService
 from collector.truth_post_store import TruthPostStore
-from collector.truth_social_client import TruthSocialClient
 
 
 def configure_logging() -> None:
@@ -74,8 +74,9 @@ def main(argv: list[str] | None = None) -> int:
             logger.info("Collector API base URL: %s", post_store.base_url)
             logger.info("Collector API endpoint: %s", post_store.endpoint_url)
 
+        logger.info("Using collector client: %s.", config.client_mode)
         service = CollectorService(
-            client=TruthSocialClient(config.truth_social_username),
+            client=create_client(config),
             normalizer=PostNormalizer(config.truth_social_username),
             post_store=post_store,
             output_mode=config.output_mode,

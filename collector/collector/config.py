@@ -16,6 +16,7 @@ class CollectorConfig:
     truth_post_api_base_url: str = "http://localhost:5044"
     truth_posts_file_path: Path = Path("./data/truth-posts.json")
     output_mode: str = "console"
+    client_mode: str = "truthbrush"
 
     @classmethod
     def from_env(cls) -> "CollectorConfig":
@@ -49,6 +50,10 @@ class CollectorConfig:
         if store_mode not in {"api", "json"}:
             raise ValueError("COLLECTOR_STORE_MODE must be either `api` or `json`.")
 
+        client_mode = os.getenv("COLLECTOR_CLIENT_MODE", "truthbrush").strip().lower()
+        if client_mode not in {"truthbrush", "playwright"}:
+            raise ValueError("COLLECTOR_CLIENT_MODE must be either `truthbrush` or `playwright`.")
+
         truth_post_api_base_url = (
             os.getenv("TRUTH_POST_API_BASE_URL")
             or "http://localhost:5044"
@@ -68,4 +73,5 @@ class CollectorConfig:
                 os.getenv("TRUTH_POSTS_FILE_PATH", "./data/truth-posts.json")
             ),
             output_mode=output_mode,
+            client_mode=client_mode,
         )
