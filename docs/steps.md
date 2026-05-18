@@ -56,34 +56,64 @@
 - [~] 6. Collector
     - [x] 6a. Välj collector-teknik, exempelvis Python + truthbrush eller .NET worker
     - [x] 6b. Dockerisera collector
-    - [x] 6c. Hämta senaste Truth Social-poster
+    - [x] 6c. Hämta senaste Truth Social-poster med truthbrush
     - [x] 6d. Mappa hämtad data till TruthPost
     - [x] 6e. Spara poster i databasen via API eller direkt DB
     - [x] 6f. Lägg till ExternalId/TruthSocialId
     - [x] 6g. Lägg till unik constraint för att undvika dubletter
-    - [x] 6g.1. Konfigurera `TRUTH_SOCIAL_ACCOUNT_ID` i self-hosting för att hoppa över `/api/v1/accounts/lookup`; username-lookup finns kvar som fallback.
-    - [~] 6h. Logga varje collectorkörning i FetcherRun
-        - [x] Lagt till `fetcher_runs` för historik över StartedAt, FinishedAt, DurationMs, Status, TriggerType och räknare.
-        - [x] Manuell trigger loggas som `Manual`; scheduler-containern skickar trigger-header och loggas som `Scheduler`.
-        - [x] Dubletter räknas via befintlig collector/API/databaslogik och sparas som `DuplicateCount`.
-        - [x] `GET /api/fetcher-runs/latest` returnerar de senaste 20 körningarna för felsökning/övervakning.
-        - [ ] Verifiera mot körande PostgreSQL: applicera migrationen och bekräfta att manuella och schemalagda körningar skapar rader.
-    - [x] 6i. Testa manuell collectorkörning
+    - [x] 6h. Logga varje collectorkörning i FetcherRun
+    - [x] 6i. Testa manuell collectorkörning med truthbrush
     - [x] 6j. Verifiera sparade poster i databasen
+    - [ ] 6k. Behåll befintlig truthbrush-lösning som separat provider
+    - [ ] 6l. Skapa gemensamt collector-interface/provider-kontrakt, exempelvis `fetch_posts(username, max_posts)`
+    - [ ] 6m. Flytta befintlig truthbrush-logik till `TruthbrushProvider`
+    - [ ] 6n. Lägg till env-variabel `COLLECTOR_PROVIDER=truthbrush|playwright`
+    - [ ] 6o. Läs `COLLECTOR_PROVIDER` i collector-startup och välj rätt provider
+    - [ ] 6p. Lägg `COLLECTOR_PROVIDER` i `.env` och `docker-compose.yml`
+    - [ ] 6q. Verifiera att `COLLECTOR_PROVIDER=truthbrush` fungerar exakt som tidigare
+    - [ ] 6r. Lägg till Playwright som Python-dependency
+    - [ ] 6s. Uppdatera collector-Dockerfile så Chromium/Playwright-browsers installeras
+    - [ ] 6t. Skapa `PlaywrightProvider`
+    - [ ] 6u. Testa att Playwright kan starta Chromium i containern
+    - [ ] 6v. Öppna Truth Social-profilsidan med Playwright och logga/spara HTML för felsökning
+    - [ ] 6w. Extrahera post-id, text, publiceringstid och post-url från Playwright-resultatet
+    - [ ] 6x. Mappa Playwright-resultatet till samma TruthPost-format som truthbrush använder
+    - [ ] 6y. Kör manuell collectorkörning med `COLLECTOR_PROVIDER=playwright`
+    - [ ] 6z. Verifiera att Playwright-poster sparas i databasen utan dubletter
+    - [ ] 6å. Lägg till block-/rate-limit-detection för Playwright
+    - [ ] 6ä. Spara screenshot/HTML vid Playwright-fel för felsökning
+    - [ ] 6ö. Jämför truthbrush och Playwright efter några dagar och välj primär provider
 
 - [x] 7. Manuell trigger
-- [~] 8. Scheduler
-    - [x] Docker Compose kör `collector-scheduler` med `restart: unless-stopped`.
-    - [x] Schedulern anropar `POST http://api:8080/api/collector/run` var femte minut.
-    - [x] API-nyckel skickas via `X-TrumpStockAlert-Scheduler-Key` från `SCHEDULER_API_KEY`.
-    - [x] Kan stängas av med `COLLECTOR_SCHEDULER_ENABLED=false`.
-    - [x] Väntar på `http://api:8080/health` innan första collectorkörningen.
-    - [x] Kör med jitter (`COLLECTOR_SCHEDULER_JITTER_SECONDS`) och backoff (`COLLECTOR_SCHEDULER_BACKOFF_SECONDS`) vid 403/Forbidden/blocked-svar från Truth Social.
-    - [x] Varje körning loggar UTC-timestamp, HTTP-status och response body eller curl-fel.
-    - [x] Dublettskydd hanteras av befintlig collector/API/databas-unikhet, inte av schedulern.
-    - [ ] Verifiera på server med Docker: `docker compose up -d --build --force-recreate collector-scheduler` och `docker compose logs -f collector-scheduler`.
+    - [x] 7a. Skapa `POST /api/collector/run`
+    - [x] 7b. Skydda endpoint med `X-TrumpStockAlert-Scheduler-Key`
+    - [x] 7c. Läsa API-nyckel från `.env`/config
+    - [x] 7d. Testa manuell körning via curl
+    - [x] 7e. Koppla frontend-knappen `Run Collector Test` till endpointen
+	
+- [x] 8. Scheduler
+    - [x] 8a. Skapa `collector-scheduler`-container
+    - [x] 8b. Anropa `POST /api/collector/run` automatiskt
+    - [x] 8c. Kör var 5:e minut
+    - [x] 8d. Skicka scheduler API-key
+    - [x] 8e. Vänta på `/health` innan första körningen
+    - [x] 8f. Lägg till jitter
+    - [x] 8g. Lägg till backoff vid 403/blocked
+    - [x] 8h. Verifiera scheduler-loggar
+    - [x] 8i. Verifiera att `DuplicateCount` används och inga dubletter sparas
+
 - [ ] 9. AI-analys
+    - [ ] 9a. Bygg mock analyzer
+    - [ ] 9b. Analysera oanalyserade poster
+    - [ ] 9c. Sätt market impact score
+    - [ ] 9d. Skapa AI-prompt och JSON-format
+    - [ ] 9e. Koppla in riktig AI-klient
+
 - [ ] 10. Spara AI-analys
+    - [ ] 10a. Spara score, reasoning och affected assets
+    - [ ] 10b. Undvik att analysera samma post flera gånger
+    - [ ] 10c. Visa analys via API
+    - [ ] 10d. Visa analys i frontend/dashboard
 
 - [~] 11. E-post/alerts
     - [x] 11a. Skapa AlertSettings-konfiguration
