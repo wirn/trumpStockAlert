@@ -14,6 +14,8 @@ services:
       Scheduler__ApiKey: ${SCHEDULER_API_KEY:-}
       Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-http://100.92.230.97:5173,http://localhost:5173}
       Collector__TruthSocialAccountId: ${TRUTH_SOCIAL_ACCOUNT_ID:-}
+      MAX_POSTS: ${COLLECTOR_MAX_POSTS:-10}
+      Collector__MaxPosts: ${COLLECTOR_MAX_POSTS:-5}
     ports:
       - "100.92.230.97:8080:8080"
 
@@ -55,18 +57,14 @@ services:
       - api
     environment:
       COLLECTOR_SCHEDULER_ENABLED: ${COLLECTOR_SCHEDULER_ENABLED:-true}
+      COLLECTOR_SCHEDULER_URL: ${COLLECTOR_SCHEDULER_URL:-http://api:8080/api/collector/run}
       COLLECTOR_SCHEDULER_INTERVAL_SECONDS: ${COLLECTOR_SCHEDULER_INTERVAL_SECONDS:-300}
       COLLECTOR_SCHEDULER_JITTER_SECONDS: ${COLLECTOR_SCHEDULER_JITTER_SECONDS:-120}
       COLLECTOR_SCHEDULER_BACKOFF_SECONDS: ${COLLECTOR_SCHEDULER_BACKOFF_SECONDS:-900}
       COLLECTOR_SCHEDULER_HEALTH_URL: ${COLLECTOR_SCHEDULER_HEALTH_URL:-http://api:8080/health}
+      SCHEDULER_API_KEY: ${SCHEDULER_API_KEY:-}
     volumes:
-      # Grants access to the Docker daemon so the scheduler can run:
-      #   docker compose run --rm --build collector
-      # WARNING: Docker socket access is equivalent to root on the host.
-      # Acceptable for a self-hosted home server; review before exposing externally.
       - /var/run/docker.sock:/var/run/docker.sock
-      # Project directory mounted read-only so `docker compose` can read
-      # docker-compose.yml and .env for variable substitution.
       - .:/workspace:ro
     working_dir: /workspace
 
