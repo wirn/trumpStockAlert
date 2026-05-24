@@ -65,7 +65,7 @@ class PlaywrightTruthSocialClient:
                 "playwright is not installed. "
                 "Install it with: pip install playwright playwright-stealth && playwright install chromium"
             )
-        if stealth_async is None:
+        if stealth is None:
             raise PlaywrightClientError(
                 "playwright-stealth is not installed. "
                 "Install it with: pip install playwright-stealth"
