@@ -16,10 +16,13 @@ _EXTRA_WAIT_MS = 3_000
 # Module-level references so tests can monkeypatch them.
 try:
     from playwright.async_api import async_playwright
-    from playwright_stealth import stealth  # type: ignore[import-not-found]
 except ImportError:
     async_playwright = None  # type: ignore[assignment]
-    stealth_async = None  # type: ignore[assignment]
+
+try:
+    from playwright_stealth import Stealth
+except ImportError:
+    Stealth = None  # type: ignore[assignment]
 
 
 class PlaywrightClientError(RuntimeError):
@@ -65,10 +68,10 @@ class PlaywrightTruthSocialClient:
                 "playwright is not installed. "
                 "Install it with: pip install playwright playwright-stealth && playwright install chromium"
             )
-        if stealth is None:
+        if Stealth is None:
             raise PlaywrightClientError(
                 "playwright-stealth is not installed. "
-                "Install it with: pip install playwright-stealth"
+                "Install it with: pip install playwright-stealth>=2.0.0"
             )
 
         async with async_playwright() as pw:
@@ -85,7 +88,15 @@ class PlaywrightTruthSocialClient:
                     locale="en-US",
                 )
                 page = await context.new_page()
-                await stealth(page)
+                stealth = Stealth()
+                apply_stealth_async = getattr(stealth, "apply_stealth_async", None)
+                if not callable(apply_stealth_async):
+                    raise PlaywrightClientError(
+                        "playwright-stealth is installed but does not expose "
+                        "Stealth.apply_stealth_async. Install playwright-stealth>=2.0.0."
+                    )
+
+                await apply_stealth_async(page)
 
                 captured: list[dict[str, Any]] = []
 

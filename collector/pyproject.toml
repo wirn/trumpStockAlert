@@ -14,7 +14,7 @@ dev = [
 ]
 playwright = [
     "playwright>=1.44.0",
-    "playwright-stealth>=1.0.6",
+    "playwright-stealth>=2.0.0",
 ]
 
 [tool.pytest.ini_options]

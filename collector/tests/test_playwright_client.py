@@ -36,8 +36,8 @@ def make_playwright_stack(
     response_url: str = STATUSES_URL,
     response_status: int = 200,
     goto_raises: Exception | None = None,
-) -> tuple[MagicMock, MagicMock]:
-    """Return (mock_async_playwright, mock_stealth_async) that fire a response during goto."""
+) -> tuple[MagicMock, MagicMock, AsyncMock]:
+    """Return Playwright/Stealth mocks that fire a response during goto."""
     registered: list[Callable] = []
 
     async def mock_goto(*args, **kwargs) -> None:
@@ -68,9 +68,11 @@ def make_playwright_stack(
     mock_pw.__aexit__ = AsyncMock(return_value=False)
 
     mock_async_playwright = MagicMock(return_value=mock_pw)
-    mock_stealth = AsyncMock()
+    mock_stealth_instance = MagicMock()
+    mock_stealth_instance.apply_stealth_async = AsyncMock()
+    mock_stealth_type = MagicMock(return_value=mock_stealth_instance)
 
-    return mock_async_playwright, mock_stealth
+    return mock_async_playwright, mock_stealth_type, mock_stealth_instance.apply_stealth_async
 
 
 # ---------------------------------------------------------------------------
@@ -146,11 +148,24 @@ def test_missing_playwright_raises_client_error(monkeypatch):
 
 
 def test_missing_stealth_raises_client_error(monkeypatch):
-    monkeypatch.setattr("collector.playwright_client.stealth_async", None)
+    monkeypatch.setattr("collector.playwright_client.Stealth", None)
     # async_playwright must be non-None; use any truthy value
     monkeypatch.setattr("collector.playwright_client.async_playwright", MagicMock())
     client = PlaywrightTruthSocialClient("realDonaldTrump")
     with pytest.raises(PlaywrightClientError, match="playwright-stealth is not installed"):
+        client.fetch_latest_posts(max_posts=5)
+
+
+def test_unsupported_stealth_api_raises_client_error(monkeypatch):
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(SAMPLE_POSTS)
+    mock_stealth_instance = MagicMock()
+    mock_stealth_instance.apply_stealth_async = None
+    mock_stealth_type.return_value = mock_stealth_instance
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+    with pytest.raises(PlaywrightClientError, match="Stealth.apply_stealth_async"):
         client.fetch_latest_posts(max_posts=5)
 
 
@@ -159,20 +174,21 @@ def test_missing_stealth_raises_client_error(monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_fetch_returns_posts_from_intercepted_response(monkeypatch):
-    mock_pw, mock_stealth = make_playwright_stack(SAMPLE_POSTS)
+    mock_pw, mock_stealth_type, mock_apply_stealth = make_playwright_stack(SAMPLE_POSTS)
     monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
-    monkeypatch.setattr("collector.playwright_client.stealth_async", mock_stealth)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
     posts = client.fetch_latest_posts(max_posts=10)
 
     assert [p["id"] for p in posts] == ["3", "2", "1"]
+    mock_apply_stealth.assert_awaited_once()
 
 
 def test_fetch_respects_max_posts(monkeypatch):
-    mock_pw, mock_stealth = make_playwright_stack(SAMPLE_POSTS)
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(SAMPLE_POSTS)
     monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
-    monkeypatch.setattr("collector.playwright_client.stealth_async", mock_stealth)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
     posts = client.fetch_latest_posts(max_posts=2)
@@ -182,9 +198,9 @@ def test_fetch_respects_max_posts(monkeypatch):
 
 
 def test_fetch_applies_created_after_filter(monkeypatch):
-    mock_pw, mock_stealth = make_playwright_stack(SAMPLE_POSTS)
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(SAMPLE_POSTS)
     monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
-    monkeypatch.setattr("collector.playwright_client.stealth_async", mock_stealth)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
     cutoff = datetime(2026, 5, 18, 11, tzinfo=UTC)
@@ -194,11 +210,11 @@ def test_fetch_applies_created_after_filter(monkeypatch):
 
 
 def test_fetch_ignores_unrelated_responses(monkeypatch):
-    mock_pw, mock_stealth = make_playwright_stack(
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(
         SAMPLE_POSTS, response_url=UNRELATED_URL
     )
     monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
-    monkeypatch.setattr("collector.playwright_client.stealth_async", mock_stealth)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
     posts = client.fetch_latest_posts(max_posts=10)
@@ -207,11 +223,11 @@ def test_fetch_ignores_unrelated_responses(monkeypatch):
 
 
 def test_fetch_ignores_non_200_statuses_responses(monkeypatch):
-    mock_pw, mock_stealth = make_playwright_stack(
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(
         SAMPLE_POSTS, response_status=403
     )
     monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
-    monkeypatch.setattr("collector.playwright_client.stealth_async", mock_stealth)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
     posts = client.fetch_latest_posts(max_posts=10)
@@ -221,11 +237,11 @@ def test_fetch_ignores_non_200_statuses_responses(monkeypatch):
 
 def test_fetch_continues_after_networkidle_timeout(monkeypatch):
     """When goto raises (e.g. networkidle timeout), the client waits and returns whatever was captured."""
-    mock_pw, mock_stealth = make_playwright_stack(
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(
         SAMPLE_POSTS, goto_raises=TimeoutError("networkidle timeout")
     )
     monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
-    monkeypatch.setattr("collector.playwright_client.stealth_async", mock_stealth)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
     # No posts captured because the response handler never fires (goto raised before it)
@@ -234,9 +250,9 @@ def test_fetch_continues_after_networkidle_timeout(monkeypatch):
 
 
 def test_fetch_strips_at_prefix_from_username(monkeypatch):
-    mock_pw, mock_stealth = make_playwright_stack(SAMPLE_POSTS)
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(SAMPLE_POSTS)
     monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
-    monkeypatch.setattr("collector.playwright_client.stealth_async", mock_stealth)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("@realDonaldTrump")
     assert client.username == "realDonaldTrump"
