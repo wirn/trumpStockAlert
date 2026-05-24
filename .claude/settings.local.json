@@ -7,5 +7,18 @@
       "Bash(New-Item -ItemType File -Force \"C:\\\\repos\\\\trumpStockAlert\\\\docs\\\\README.md\")",
       "PowerShell(New-Item *)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/prettier-frontend.ps1"
+          }
+        ]
+      }
+    ]
   }
 }

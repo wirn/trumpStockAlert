@@ -1,3 +1,5 @@
+name: trumpstockalert
+
 services:
   api:
     build:
@@ -31,19 +33,17 @@ services:
   collector:
     build:
       context: ./collector
-    container_name: trump-collector
     restart: "no"
     depends_on:
       - api
     environment:
+      COLLECTOR_CLIENT_MODE: playwright
       COLLECTOR_STORE_MODE: api
       TRUTH_POST_API_BASE_URL: http://api:8080
       TRUTH_SOCIAL_USERNAME: ${TRUTH_SOCIAL_USERNAME:-realDonaldTrump}
       MAX_POSTS: ${COLLECTOR_MAX_POSTS:-10}
       LOOKBACK_MINUTES: ${COLLECTOR_LOOKBACK_MINUTES:-5}
       OUTPUT_MODE: console
-      TRUTHSOCIAL_USERNAME: ${TRUTHSOCIAL_USERNAME:-}
-      TRUTHSOCIAL_PASSWORD: ${TRUTHSOCIAL_PASSWORD:-}
     command: ["python", "-m", "collector.main", "--skip-lookback"]
 
   collector-scheduler:
@@ -58,9 +58,17 @@ services:
       COLLECTOR_SCHEDULER_INTERVAL_SECONDS: ${COLLECTOR_SCHEDULER_INTERVAL_SECONDS:-300}
       COLLECTOR_SCHEDULER_JITTER_SECONDS: ${COLLECTOR_SCHEDULER_JITTER_SECONDS:-120}
       COLLECTOR_SCHEDULER_BACKOFF_SECONDS: ${COLLECTOR_SCHEDULER_BACKOFF_SECONDS:-900}
-      COLLECTOR_SCHEDULER_URL: http://api:8080/api/collector/run
       COLLECTOR_SCHEDULER_HEALTH_URL: ${COLLECTOR_SCHEDULER_HEALTH_URL:-http://api:8080/health}
-      SCHEDULER_API_KEY: ${SCHEDULER_API_KEY:-}
+    volumes:
+      # Grants access to the Docker daemon so the scheduler can run:
+      #   docker compose run --rm --build collector
+      # WARNING: Docker socket access is equivalent to root on the host.
+      # Acceptable for a self-hosted home server; review before exposing externally.
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Project directory mounted read-only so `docker compose` can read
+      # docker-compose.yml and .env for variable substitution.
+      - .:/workspace:ro
+    working_dir: /workspace
 
 volumes:
   postgres_data:

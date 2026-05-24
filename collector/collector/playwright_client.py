@@ -72,7 +72,13 @@ class PlaywrightTruthSocialClient:
             )
 
         async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=self.headless)
+            browser = await pw.chromium.launch(
+                headless=self.headless,
+                # Required in Docker: no sandbox (kernel namespaces typically
+                # unavailable) and route /dev/shm writes through /tmp to avoid
+                # the 64 MB Docker default limit.
+                args=["--no-sandbox", "--disable-dev-shm-usage"],
+            )
             try:
                 context = await browser.new_context(
                     viewport={"width": 1280, "height": 900},

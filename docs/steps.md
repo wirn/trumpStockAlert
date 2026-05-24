@@ -24,9 +24,9 @@
     - [x] 3b. Lägg till backend/API-container
     - [x] 3c. Lägg till databas-container
     - [ ] 3d. Lägg till frontend-container
-    - [ ] 3e. Lägg till collector-container
+    - [x] 3e. Lägg till collector-container som manuell/one-shot job
     - [ ] 3f. Lägg till analyzer-container
-    - [x] 3g. Lägg till restart: unless-stopped på alla tjänster
+    - [x] 3g. Lägg till restart: unless-stopped på långkörande tjänster
     - [x] 3h. Verifiera att docker compose up -d startar allt
     - [ ] 3i. Verifiera att containers startar efter reboot
 
@@ -49,12 +49,14 @@
     - [x] 5d. Koppla API:t till databasen
     - [x] 5e. Skapa endpoint för att lista senaste poster
     - [x] 5f. Skapa endpoint för att lista senaste analyser
-    - [ ] 5g. Skapa endpoint för att lista alerts
+    - [x] 5g. Skapa endpoint för att lista alerts
     - [x] 5h. Testa API:t från servern
     - [x] 5i. Testa API:t från klient via Tailscale
+    - [x] 5j. Lägg till CORS för self-hosted frontend via `Cors__AllowedOrigins`
+    - [x] 5k. Lägg till `GET /api/fetcher-runs/latest`
 
 - [~] 6. Collector
-    - [x] 6a. Välj collector-teknik, exempelvis Python + truthbrush eller .NET worker
+    - [x] 6a. Välj collector-teknik: Python collector finns, backend har även .NET collector fallback
     - [x] 6b. Dockerisera collector
     - [x] 6c. Hämta senaste Truth Social-poster med truthbrush
     - [x] 6d. Mappa hämtad data till TruthPost
@@ -64,25 +66,27 @@
     - [x] 6h. Logga varje collectorkörning i FetcherRun
     - [x] 6i. Testa manuell collectorkörning med truthbrush
     - [x] 6j. Verifiera sparade poster i databasen
-    - [ ] 6k. Behåll befintlig truthbrush-lösning som separat provider
-    - [ ] 6l. Skapa gemensamt collector-interface/provider-kontrakt, exempelvis `fetch_posts(username, max_posts)`
-    - [ ] 6m. Flytta befintlig truthbrush-logik till `TruthbrushProvider`
-    - [ ] 6n. Lägg till env-variabel `COLLECTOR_PROVIDER=truthbrush|playwright`
-    - [ ] 6o. Läs `COLLECTOR_PROVIDER` i collector-startup och välj rätt provider
-    - [ ] 6p. Lägg `COLLECTOR_PROVIDER` i `.env` och `docker-compose.yml`
-    - [ ] 6q. Verifiera att `COLLECTOR_PROVIDER=truthbrush` fungerar exakt som tidigare
-    - [ ] 6r. Lägg till Playwright som Python-dependency
-    - [ ] 6s. Uppdatera collector-Dockerfile så Chromium/Playwright-browsers installeras
-    - [ ] 6t. Skapa `PlaywrightProvider`
+    - [x] 6k. Behåll befintlig truthbrush-lösning som separat client/provider
+    - [x] 6l. Skapa gemensamt collector-client-kontrakt via `fetch_latest_posts(max_posts, created_after)`
+    - [x] 6m. Lägg truthbrush-logik i separat client (`truth_social_client.py`)
+    - [x] 6n. Lägg till env-variabel `COLLECTOR_CLIENT_MODE=truthbrush|playwright`
+    - [x] 6o. Läs `COLLECTOR_CLIENT_MODE` i collector-startup och välj rätt client via `client_factory.py`
+    - [x] 6p. Lägg `COLLECTOR_CLIENT_MODE` i `.env` och `docker-compose.yml`
+    - [x] 6q. Verifiera att `COLLECTOR_CLIENT_MODE=truthbrush` fungerar i testsviten
+    - [x] 6r. Lägg till Playwright som valfri Python-dependency (`.[playwright]`)
+    - [x] 6s. Uppdatera collector-Dockerfile så Chromium/Playwright-browsers installeras
+    - [x] 6t. Skapa Python Playwright-client (`PlaywrightTruthSocialClient`)
     - [ ] 6u. Testa att Playwright kan starta Chromium i containern
-    - [ ] 6v. Öppna Truth Social-profilsidan med Playwright och logga/spara HTML för felsökning
-    - [ ] 6w. Extrahera post-id, text, publiceringstid och post-url från Playwright-resultatet
-    - [ ] 6x. Mappa Playwright-resultatet till samma TruthPost-format som truthbrush använder
-    - [ ] 6y. Kör manuell collectorkörning med `COLLECTOR_PROVIDER=playwright`
+    - [~] 6v. Öppna Truth Social-profilsidan med Playwright och fånga network JSON; debug HTML/screenshot saknas
+    - [x] 6w. Extrahera post-id, text, publiceringstid och post-url från Playwright network-resultat via befintlig normalizer
+    - [x] 6x. Mappa Playwright-resultatet till samma TruthPost-format som truthbrush använder
+    - [ ] 6y. Kör manuell collectorkörning med `COLLECTOR_CLIENT_MODE=playwright` mot riktig Truth Social/backend
     - [ ] 6z. Verifiera att Playwright-poster sparas i databasen utan dubletter
     - [ ] 6å. Lägg till block-/rate-limit-detection för Playwright
     - [ ] 6ä. Spara screenshot/HTML vid Playwright-fel för felsökning
     - [ ] 6ö. Jämför truthbrush och Playwright efter några dagar och välj primär provider
+    - [x] 6aa. Verifiera Python collector-testsviten: 40 tester passerar inklusive Playwright-client
+    - [x] 6ab. Byt self-hosted scheduler/collector-flöde från backend .NET/truthbrush till Python Playwright
 
 - [x] 7. Manuell trigger
     - [x] 7a. Skapa `POST /api/collector/run`
@@ -101,6 +105,7 @@
     - [x] 8g. Lägg till backoff vid 403/blocked
     - [x] 8h. Verifiera scheduler-loggar
     - [x] 8i. Verifiera att `DuplicateCount` används och inga dubletter sparas
+    - [x] 8j. Besluta om schedulern ska fortsätta trigga backend `.NET` collector eller köra Python Playwright collector direkt
 
 - [ ] 9. AI-analys
     - [ ] 9a. Bygg mock analyzer
@@ -130,9 +135,21 @@
     - [ ] 11l. Lägg till riktig e-postleverantör
     - [ ] 11m. Verifiera riktigt e-postutskick
 
-- [ ] 12. Frontend/dashboard
+- [~] 12. Frontend/dashboard
+    - [x] React/Vite dashboard finns
+    - [x] Dashboard hämtar posts och analyser från API
+    - [x] Admin-knappen `Run Collector Test` anropar `POST /api/collector/run`
+    - [x] Frontend använder `VITE_API_BASE_URL`
+    - [x] Frontend använder `VITE_SCHEDULER_API_KEY` för privat admin-dashboard
+    - [ ] Visa FetcherRun-historik i UI
+    - [ ] Dockerisera frontend för self-hosted körning
 - [ ] 13. Backup
-- [ ] 14. Loggning + felhantering
+- [~] 14. Loggning + felhantering
+    - [x] FetcherRun-loggning i databas
+    - [x] Collector save-flow fortsätter trots enstaka fel
+    - [x] Backend loggar HTTP-status/response body vid collector-fel
+    - [x] Scheduler loggar timestamp, status, body, jitter och backoff
+    - [ ] Centralisera/rotera containerloggar
 
 - [~] 15. Driftstabilitet
     - [x] 15a. Lägg restart: unless-stopped på alla containers
@@ -148,7 +165,7 @@
     - [x] 16a. Ha alla secrets i .env eller Docker secrets senare
     - [x] 16b. Lägg aldrig secrets i Git
     - [x] 16c. Använd starka lösenord/API-nycklar
-    - [ ] 16d. Skydda scheduler-endpoints med API-key
+    - [x] 16d. Skydda scheduler-endpoints med API-key
     - [x] 16e. Begränsa publik exponering
     - [x] 16f. Använd Tailscale som första remote access-lösning
     - [x] 16g. Håll Ubuntu uppdaterat

@@ -9,12 +9,17 @@ TrumpStockAlert monitors Donald Trump's Truth Social posts, stores new posts, an
 
 ## Core goals
 
+**Primary:**
+
 - Fetch new Truth Social posts regularly.
 - Store posts and collector run history.
 - Analyze posts for market impact.
 - Score each post from 1–100.
-- Include likely market direction when relevant.
 - Avoid duplicate posts and duplicate alerts.
+
+**Secondary (design principles):**
+
+- Include likely market direction when relevant.
 - Keep hosting cost very low.
 - Prefer simple, observable, maintainable solutions.
 
@@ -77,7 +82,7 @@ Current/known provider options:
 When changing collector behavior:
 
 - Keep provider selection configurable.
-- Do not remove the existing provider unless explicitly asked.
+- Do not remove the existing provider unless explicitly requested in writing or through a documented issue.
 - Prefer config-driven switching, for example:
 
 ```text
