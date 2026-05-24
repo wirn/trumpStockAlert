@@ -16,7 +16,7 @@ _EXTRA_WAIT_MS = 3_000
 # Module-level references so tests can monkeypatch them.
 try:
     from playwright.async_api import async_playwright
-    from playwright_stealth import stealth_async  # type: ignore[import-not-found]
+    from playwright_stealth import stealth  # type: ignore[import-not-found]
 except ImportError:
     async_playwright = None  # type: ignore[assignment]
     stealth_async = None  # type: ignore[assignment]
@@ -85,7 +85,7 @@ class PlaywrightTruthSocialClient:
                     locale="en-US",
                 )
                 page = await context.new_page()
-                await stealth_async(page)
+                await stealth(page)
 
                 captured: list[dict[str, Any]] = []
 
