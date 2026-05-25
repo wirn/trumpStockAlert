@@ -55,38 +55,38 @@
     - [x] 5j. Lägg till CORS för self-hosted frontend via `Cors__AllowedOrigins`
     - [x] 5k. Lägg till `GET /api/fetcher-runs/latest`
 
-- [~] 6. Collector
-    - [x] 6a. Välj collector-teknik: Python collector finns, backend har även .NET collector fallback
+- [x] 6. Collector
+    - [x] 6a. Välj collector-teknik: Python collector med Playwright som primär lösning
     - [x] 6b. Dockerisera collector
-    - [x] 6c. Hämta senaste Truth Social-poster med truthbrush
+    - [x] 6c. Hämta senaste Truth Social-poster
     - [x] 6d. Mappa hämtad data till TruthPost
-    - [x] 6e. Spara poster i databasen via API eller direkt DB
+    - [x] 6e. Spara poster i databasen via API
     - [x] 6f. Lägg till ExternalId/TruthSocialId
     - [x] 6g. Lägg till unik constraint för att undvika dubletter
     - [x] 6h. Logga varje collectorkörning i FetcherRun
-    - [x] 6i. Testa manuell collectorkörning med truthbrush
-    - [x] 6j. Verifiera sparade poster i databasen
-    - [x] 6k. Behåll befintlig truthbrush-lösning som separat client/provider
-    - [x] 6l. Skapa gemensamt collector-client-kontrakt via `fetch_latest_posts(max_posts, created_after)`
-    - [x] 6m. Lägg truthbrush-logik i separat client (`truth_social_client.py`)
-    - [x] 6n. Lägg till env-variabel `COLLECTOR_CLIENT_MODE=truthbrush|playwright`
-    - [x] 6o. Läs `COLLECTOR_CLIENT_MODE` i collector-startup och välj rätt client via `client_factory.py`
-    - [x] 6p. Lägg `COLLECTOR_CLIENT_MODE` i `.env` och `docker-compose.yml`
-    - [x] 6q. Verifiera att `COLLECTOR_CLIENT_MODE=truthbrush` fungerar i testsviten
-    - [x] 6r. Lägg till Playwright som valfri Python-dependency (`.[playwright]`)
-    - [x] 6s. Uppdatera collector-Dockerfile så Chromium/Playwright-browsers installeras
-    - [x] 6t. Skapa Python Playwright-client (`PlaywrightTruthSocialClient`)
-    - [ ] 6u. Testa att Playwright kan starta Chromium i containern
-    - [~] 6v. Öppna Truth Social-profilsidan med Playwright och fånga network JSON; debug HTML/screenshot saknas
-    - [x] 6w. Extrahera post-id, text, publiceringstid och post-url från Playwright network-resultat via befintlig normalizer
-    - [x] 6x. Mappa Playwright-resultatet till samma TruthPost-format som truthbrush använder
-    - [ ] 6y. Kör manuell collectorkörning med `COLLECTOR_CLIENT_MODE=playwright` mot riktig Truth Social/backend
-    - [ ] 6z. Verifiera att Playwright-poster sparas i databasen utan dubletter
+    - [x] 6i. Verifiera sparade poster i databasen
+    - [x] 6j. Behåll befintlig truthbrush-lösning som separat fallback-provider
+    - [x] 6k. Skapa gemensamt collector-client-kontrakt via `fetch_latest_posts(max_posts, created_after)`
+    - [x] 6l. Lägg truthbrush-logik i separat client
+    - [x] 6m. Lägg till env-variabel `COLLECTOR_CLIENT_MODE=truthbrush|playwright`
+    - [x] 6n. Läs `COLLECTOR_CLIENT_MODE` i collector-startup och välj rätt client
+    - [x] 6o. Lägg `COLLECTOR_CLIENT_MODE` i `.env` och `docker-compose.yml`
+    - [x] 6p. Lägg till Playwright som Python-dependency
+    - [x] 6q. Uppdatera collector-Dockerfile så Chromium/Playwright installeras
+    - [x] 6r. Skapa Python Playwright-client
+    - [x] 6s. Testa att Playwright kan starta Chromium i containern
+    - [x] 6t. Öppna Truth Social-profilsidan med Playwright och fånga network JSON
+    - [x] 6u. Extrahera post-id, text, publiceringstid och post-url från Playwright-resultat
+    - [x] 6v. Mappa Playwright-resultatet till samma TruthPost-format som truthbrush använder
+    - [x] 6w. Kör collectorkörning med `COLLECTOR_CLIENT_MODE=playwright` mot riktig Truth Social/backend
+    - [x] 6x. Verifiera att Playwright-poster sparas i databasen utan dubletter
+    - [x] 6y. Förbättra content extraction så vanliga textposter sparas korrekt
+    - [x] 6z. Verifiera att `[No text content]` endast används när posten saknar textinnehåll
     - [ ] 6å. Lägg till block-/rate-limit-detection för Playwright
     - [ ] 6ä. Spara screenshot/HTML vid Playwright-fel för felsökning
-    - [ ] 6ö. Jämför truthbrush och Playwright efter några dagar och välj primär provider
-    - [x] 6aa. Verifiera Python collector-testsviten: 40 tester passerar inklusive Playwright-client
-    - [x] 6ab. Byt self-hosted scheduler/collector-flöde från backend .NET/truthbrush till Python Playwright
+    - [ ] 6ö. Jämför truthbrush och Playwright efter några dagar och välj om truthbrush ska behållas som fallback
+    - [x] 6aa. Verifiera Python collector-testsviten
+    - [x] 6ab. Byt self-hosted scheduler/collector-flöde till Python Playwright
 
 - [x] 7. Manuell trigger
     - [x] 7a. Skapa `POST /api/collector/run`
@@ -97,15 +97,16 @@
 	
 - [x] 8. Scheduler
     - [x] 8a. Skapa `collector-scheduler`-container
-    - [x] 8b. Anropa `POST /api/collector/run` automatiskt
-    - [x] 8c. Kör var 5:e minut
-    - [x] 8d. Skicka scheduler API-key
-    - [x] 8e. Vänta på `/health` innan första körningen
-    - [x] 8f. Lägg till jitter
-    - [x] 8g. Lägg till backoff vid 403/blocked
+    - [x] 8b. Kör Python Playwright collector automatiskt
+    - [x] 8c. Kör ungefär var 10:e minut
+    - [x] 8d. Lägg till jitter, nu cirka 0–120 sekunder
+    - [x] 8e. Skicka scheduler API-key
+    - [x] 8f. Vänta på `/health` innan första körningen
+    - [x] 8g. Lägg till backoff vid fel/blockering
     - [x] 8h. Verifiera scheduler-loggar
     - [x] 8i. Verifiera att `DuplicateCount` används och inga dubletter sparas
-    - [x] 8j. Besluta om schedulern ska fortsätta trigga backend `.NET` collector eller köra Python Playwright collector direkt
+    - [x] 8j. Säkerställ att endast `collector-scheduler` körs, inte separat `collector`-container
+    - [x] 8k. Verifiera att endast en `fetcher_runs`-rad skapas per scheduler-körning
 
 - [ ] 9. AI-analys
     - [ ] 9a. Bygg mock analyzer
