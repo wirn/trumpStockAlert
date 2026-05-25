@@ -123,3 +123,5 @@ static IEnumerable<string> SplitOrigins(string? value)
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .Where(origin => !string.IsNullOrWhiteSpace(origin));
 }
+
+public partial class Program { }
