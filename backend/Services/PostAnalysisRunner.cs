@@ -24,19 +24,24 @@ public sealed class PostAnalysisRunner(
             .OrderBy(post => post.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        var skippedCount = totalPostCount - pendingPosts.Count;
+        var skippedAlreadyAnalyzedCount = totalPostCount - pendingPosts.Count;
+        var skippedNoTextContentCount = 0;
         logger.LogInformation(
-            "Found {PendingCount} pending posts for analysis. {SkippedCount} posts already have analysis.",
+            "Found {PendingCount} unanalyzed posts for analysis. {SkippedAlreadyAnalyzedCount} posts already have analysis.",
             pendingPosts.Count,
-            skippedCount);
+            skippedAlreadyAnalyzedCount);
 
         if (pendingPosts.Count == 0)
         {
-            logger.LogInformation("Post analysis run completed with no pending posts.");
+            logger.LogInformation(
+                "Post analysis run completed with no unanalyzed posts. AnalyzedCount=0 SkippedNoTextContentCount=0 SkippedAlreadyAnalyzedCount={SkippedAlreadyAnalyzedCount} FailedCount=0",
+                skippedAlreadyAnalyzedCount);
             return new PostAnalysisRunResult
             {
                 AnalyzedCount = 0,
-                SkippedCount = skippedCount,
+                SkippedCount = skippedAlreadyAnalyzedCount,
+                SkippedAlreadyAnalyzedCount = skippedAlreadyAnalyzedCount,
+                SkippedNoTextContentCount = 0,
                 FailedCount = 0,
                 Message = "No pending posts found for analysis.",
                 AnalyzedPostIds = [],
@@ -55,9 +60,9 @@ public sealed class PostAnalysisRunner(
             {
                 if (!IsAnalyzableContent(post.Content))
                 {
-                    skippedCount++;
+                    skippedNoTextContentCount++;
                     logger.LogInformation(
-                        "Skipping truth post {PostId} ({ExternalId}) because it has placeholder content.",
+                        "Skipping truth post {PostId} ({ExternalId}) because it has missing/no text content.",
                         post.Id,
                         post.ExternalId);
                     continue;
@@ -108,7 +113,7 @@ public sealed class PostAnalysisRunner(
 
                 if (alreadyAnalyzed)
                 {
-                    skippedCount++;
+                    skippedAlreadyAnalyzedCount++;
                     logger.LogWarning(
                         exception,
                         "Truth post {PostId} ({ExternalId}) was analyzed concurrently; skipping duplicate analysis.",
@@ -135,13 +140,23 @@ public sealed class PostAnalysisRunner(
             }
         }
 
+        var skippedCount = skippedAlreadyAnalyzedCount + skippedNoTextContentCount;
         var message = $"Analyzed {analyzedPostIds.Count} posts, skipped {skippedCount}, failed {failedPostIds.Count}.";
-        logger.LogInformation("Post analysis run completed. {Message}", message);
+        logger.LogInformation(
+            "Post analysis run completed. AnalyzedCount={AnalyzedCount} SkippedCount={SkippedCount} SkippedNoTextContentCount={SkippedNoTextContentCount} SkippedAlreadyAnalyzedCount={SkippedAlreadyAnalyzedCount} FailedCount={FailedCount}. Message={Message}",
+            analyzedPostIds.Count,
+            skippedCount,
+            skippedNoTextContentCount,
+            skippedAlreadyAnalyzedCount,
+            failedPostIds.Count,
+            message);
 
         return new PostAnalysisRunResult
         {
             AnalyzedCount = analyzedPostIds.Count,
             SkippedCount = skippedCount,
+            SkippedAlreadyAnalyzedCount = skippedAlreadyAnalyzedCount,
+            SkippedNoTextContentCount = skippedNoTextContentCount,
             FailedCount = failedPostIds.Count,
             Message = message,
             AnalyzedPostIds = analyzedPostIds,

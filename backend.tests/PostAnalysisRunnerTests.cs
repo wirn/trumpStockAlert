@@ -51,6 +51,8 @@ public sealed class PostAnalysisRunnerTests : IDisposable
 
         Assert.Equal(0, result.AnalyzedCount);
         Assert.Equal(0, result.SkippedCount);
+        Assert.Equal(0, result.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(0, result.SkippedNoTextContentCount);
         Assert.Equal(0, result.FailedCount);
     }
 
@@ -89,6 +91,8 @@ public sealed class PostAnalysisRunnerTests : IDisposable
 
         Assert.Equal(0, secondResult.AnalyzedCount);
         Assert.Equal(1, secondResult.SkippedCount);
+        Assert.Equal(1, secondResult.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(0, secondResult.SkippedNoTextContentCount);
 
         var analysisCount = await _db.PostAnalyses.CountAsync(a => a.PostId == post.Id);
         Assert.Equal(1, analysisCount);
@@ -121,6 +125,8 @@ public sealed class PostAnalysisRunnerTests : IDisposable
 
         Assert.Equal(0, result.AnalyzedCount);
         Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(0, result.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(1, result.SkippedNoTextContentCount);
         Assert.Equal(0, result.FailedCount);
         Assert.Empty(result.AnalyzedPostIds);
         Assert.Equal(0, await _db.PostAnalyses.CountAsync());
@@ -138,6 +144,8 @@ public sealed class PostAnalysisRunnerTests : IDisposable
 
         Assert.Equal(1, result.AnalyzedCount);
         Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(0, result.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(1, result.SkippedNoTextContentCount);
         Assert.Equal(0, result.FailedCount);
         Assert.Contains(realPost.Id, result.AnalyzedPostIds);
         Assert.DoesNotContain(placeholderPost.Id, result.AnalyzedPostIds);
@@ -158,6 +166,8 @@ public sealed class PostAnalysisRunnerTests : IDisposable
 
         Assert.Equal(0, result.AnalyzedCount);
         Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(0, result.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(1, result.SkippedNoTextContentCount);
         Assert.Equal(0, analyzer.CallCount);
     }
 
@@ -179,6 +189,8 @@ public sealed class PostAnalysisRunnerTests : IDisposable
 
         Assert.Equal(1, result.AnalyzedCount);
         Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(1, result.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(0, result.SkippedNoTextContentCount);
     }
 
     [Fact]
@@ -194,6 +206,8 @@ public sealed class PostAnalysisRunnerTests : IDisposable
 
         Assert.Equal(0, secondResult.AnalyzedCount);
         Assert.Equal(2, secondResult.SkippedCount);
+        Assert.Equal(1, secondResult.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(1, secondResult.SkippedNoTextContentCount);
         Assert.Equal(0, secondResult.FailedCount);
         Assert.Equal(1, await _db.PostAnalyses.CountAsync());
         Assert.NotNull(await _db.PostAnalyses.SingleOrDefaultAsync(a => a.PostId == realPost.Id));

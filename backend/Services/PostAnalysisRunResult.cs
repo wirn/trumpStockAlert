@@ -6,6 +6,10 @@ public sealed class PostAnalysisRunResult
 
     public required int SkippedCount { get; init; }
 
+    public required int SkippedAlreadyAnalyzedCount { get; init; }
+
+    public required int SkippedNoTextContentCount { get; init; }
+
     public required int FailedCount { get; init; }
 
     public required string Message { get; init; }

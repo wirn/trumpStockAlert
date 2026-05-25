@@ -134,6 +134,9 @@ public sealed class AnalysesControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var body = Assert.IsType<AnalysisRunResponse>(ok.Value);
         Assert.Equal(0, body.AnalyzedCount);
+        Assert.Equal(0, body.SkippedCount);
+        Assert.Equal(0, body.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(0, body.SkippedNoTextContentCount);
         Assert.Equal(0, body.ErrorCount);
     }
 
@@ -151,6 +154,9 @@ public sealed class AnalysesControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var body = Assert.IsType<AnalysisRunResponse>(ok.Value);
         Assert.Equal(1, body.AnalyzedCount);
+        Assert.Equal(0, body.SkippedCount);
+        Assert.Equal(0, body.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(0, body.SkippedNoTextContentCount);
         Assert.Equal(0, body.ErrorCount);
     }
 
@@ -167,7 +173,26 @@ public sealed class AnalysesControllerTests : IDisposable
         var body = Assert.IsType<AnalysisRunResponse>(ok.Value);
         Assert.Equal(0, body.AnalyzedCount);
         Assert.Equal(1, body.SkippedCount);
+        Assert.Equal(1, body.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(0, body.SkippedNoTextContentCount);
         Assert.Equal(0, body.ErrorCount);
+    }
+
+    [Fact]
+    public async Task RunAnalysis_PlaceholderContent_IsSkippedAsNoTextContent()
+    {
+        await SeedPostAsync("[No text content]");
+
+        var result = await Controller().RunAnalysis(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AnalysisRunResponse>(ok.Value);
+        Assert.Equal(0, body.AnalyzedCount);
+        Assert.Equal(1, body.SkippedCount);
+        Assert.Equal(0, body.SkippedAlreadyAnalyzedCount);
+        Assert.Equal(1, body.SkippedNoTextContentCount);
+        Assert.Equal(0, body.ErrorCount);
+        Assert.Equal(0, await _db.PostAnalyses.CountAsync());
     }
 
     [Fact]

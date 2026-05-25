@@ -49,7 +49,10 @@ export interface Alert {
 export interface AnalysisRunResult {
   analyzedCount: number;
   skippedCount: number;
+  skippedAlreadyAnalyzedCount?: number;
+  skippedNoTextContentCount?: number;
   failedCount: number;
+  errorCount?: number;
   message: string;
   analyzedPostIds: number[];
   failedPostIds: number[];

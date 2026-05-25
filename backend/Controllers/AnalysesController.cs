@@ -49,9 +49,11 @@ public sealed class AnalysesController(
             var finishedAt = DateTimeOffset.UtcNow;
 
             logger.LogInformation(
-                "Analysis run completed. Analyzed: {AnalyzedCount}. Skipped: {SkippedCount}. Errors: {ErrorCount}.",
+                "Analysis run completed. Analyzed: {AnalyzedCount}. Skipped: {SkippedCount}. SkippedNoTextContent: {SkippedNoTextContentCount}. SkippedAlreadyAnalyzed: {SkippedAlreadyAnalyzedCount}. Errors: {ErrorCount}.",
                 result.AnalyzedCount,
                 result.SkippedCount,
+                result.SkippedNoTextContentCount,
+                result.SkippedAlreadyAnalyzedCount,
                 result.FailedCount);
 
             return Ok(new AnalysisRunResponse
@@ -61,6 +63,8 @@ public sealed class AnalysesController(
                 DurationMs = (long)(finishedAt - startedAt).TotalMilliseconds,
                 AnalyzedCount = result.AnalyzedCount,
                 SkippedCount = result.SkippedCount,
+                SkippedAlreadyAnalyzedCount = result.SkippedAlreadyAnalyzedCount,
+                SkippedNoTextContentCount = result.SkippedNoTextContentCount,
                 ErrorCount = result.FailedCount,
                 Message = result.Message,
             });
