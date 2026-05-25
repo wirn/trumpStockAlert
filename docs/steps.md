@@ -82,7 +82,7 @@
     - [x] 6x. Verifiera att Playwright-poster sparas i databasen utan dubletter
     - [x] 6y. Förbättra content extraction så vanliga textposter sparas korrekt
     - [x] 6z. Verifiera att `[No text content]` endast används när posten saknar textinnehåll
-    - [ ] 6å. Lägg till block-/rate-limit-detection för Playwright
+    - [x] 6å. Lägg till block-/rate-limit-detection för Playwright
     - [ ] 6ä. Spara screenshot/HTML vid Playwright-fel för felsökning
     - [ ] 6ö. Jämför truthbrush och Playwright efter några dagar och välj om truthbrush ska behållas som fallback
     - [x] 6aa. Verifiera Python collector-testsviten

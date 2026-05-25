@@ -11,6 +11,7 @@ import pytest
 
 from collector.fetcher_run_reporter import FetcherRunReportError, FetcherRunReporter
 from collector.main import main
+from collector.playwright_client import TruthSocialBlockedError
 from collector.run_summary import CollectorRunSummary
 
 
@@ -176,6 +177,27 @@ def test_collector_failure_reports_failure_once(api_env: None) -> None:
 
     assert result == 1
     assert len(tracker.report_failure_calls) == 1
+    assert len(tracker.report_run_calls) == 0
+
+
+def test_blocked_collector_failure_reports_specific_message(api_env: None) -> None:
+    tracker = _CallTrackingReporter(base_url="", scheduler_api_key="")
+    error = TruthSocialBlockedError(
+        "Truth Social returned HTTP 403 (Forbidden). Path: /api/v1/accounts/123/statuses."
+    )
+
+    with (
+        patch("collector.main.FetcherRunReporter", return_value=tracker),
+        patch("collector.main.CollectorService") as MockService,
+        patch("collector.main.create_client", return_value=MagicMock()),
+        patch("collector.main.ApiTruthPostStore", return_value=MagicMock()),
+    ):
+        MockService.return_value.run.side_effect = error
+        result = main(["--skip-lookback"])
+
+    assert result == 1
+    assert len(tracker.report_failure_calls) == 1
+    assert "HTTP 403" in tracker.report_failure_calls[0]["message"]
     assert len(tracker.report_run_calls) == 0
 
 

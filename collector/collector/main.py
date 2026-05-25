@@ -111,13 +111,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         summary = service.run(max_posts, created_after=created_after)
 
-    except Exception:
+    except Exception as exc:
         logger.exception("Collector failed.")
         if reporter is not None:
             try:
                 reporter.report_failure(
                     started_at=started_at,
-                    message="Collector failed with an unhandled exception.",
+                    message=str(exc) or "Collector failed with an unhandled exception.",
                 )
             except Exception as report_exc:
                 logger.error(

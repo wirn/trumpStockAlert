@@ -7,7 +7,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from collector.playwright_client import PlaywrightClientError, PlaywrightTruthSocialClient
+from collector.playwright_client import (
+    PlaywrightClientError,
+    PlaywrightTruthSocialClient,
+    TruthSocialAccessDeniedError,
+    TruthSocialBlockedError,
+    TruthSocialEmptyResultError,
+    TruthSocialRateLimitedError,
+    TruthSocialTimeoutError,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -36,6 +44,9 @@ def make_playwright_stack(
     response_url: str = STATUSES_URL,
     response_status: int = 200,
     goto_raises: Exception | None = None,
+    page_url: str = "https://truthsocial.com/@realDonaldTrump",
+    page_title: str = "realDonaldTrump (@realDonaldTrump) - Truth Social",
+    page_content: str = "<html><body>public profile</body></html>",
 ) -> tuple[MagicMock, MagicMock, AsyncMock]:
     """Return Playwright/Stealth mocks that fire a response during goto."""
     registered: list[Callable] = []
@@ -51,6 +62,9 @@ def make_playwright_stack(
     mock_page.on = lambda event, fn: registered.append(fn) if event == "response" else None
     mock_page.goto = mock_goto
     mock_page.wait_for_timeout = AsyncMock()
+    mock_page.url = page_url
+    mock_page.title = AsyncMock(return_value=page_title)
+    mock_page.content = AsyncMock(return_value=page_content)
 
     mock_context = MagicMock()
     mock_context.new_page = AsyncMock(return_value=mock_page)
@@ -209,7 +223,7 @@ def test_fetch_applies_created_after_filter(monkeypatch):
     assert [p["id"] for p in posts] == ["3"]
 
 
-def test_fetch_ignores_unrelated_responses(monkeypatch):
+def test_fetch_raises_when_no_statuses_response_is_captured(monkeypatch):
     mock_pw, mock_stealth_type, _ = make_playwright_stack(
         SAMPLE_POSTS, response_url=UNRELATED_URL
     )
@@ -217,12 +231,11 @@ def test_fetch_ignores_unrelated_responses(monkeypatch):
     monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
-    posts = client.fetch_latest_posts(max_posts=10)
+    with pytest.raises(TruthSocialEmptyResultError, match="No public posts"):
+        client.fetch_latest_posts(max_posts=10)
 
-    assert posts == []
 
-
-def test_fetch_ignores_non_200_statuses_responses(monkeypatch):
+def test_fetch_raises_blocked_error_on_403_response(monkeypatch):
     mock_pw, mock_stealth_type, _ = make_playwright_stack(
         SAMPLE_POSTS, response_status=403
     )
@@ -230,13 +243,65 @@ def test_fetch_ignores_non_200_statuses_responses(monkeypatch):
     monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
-    posts = client.fetch_latest_posts(max_posts=10)
+    with pytest.raises(TruthSocialBlockedError, match="HTTP 403"):
+        client.fetch_latest_posts(max_posts=10)
 
-    assert posts == []
+
+def test_fetch_raises_rate_limited_error_on_429_response(monkeypatch):
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(
+        SAMPLE_POSTS, response_status=429
+    )
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+    with pytest.raises(TruthSocialRateLimitedError, match="HTTP 429"):
+        client.fetch_latest_posts(max_posts=10)
 
 
-def test_fetch_continues_after_networkidle_timeout(monkeypatch):
-    """When goto raises (e.g. networkidle timeout), the client waits and returns whatever was captured."""
+def test_fetch_raises_access_denied_error_on_auth_failure_response(monkeypatch):
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(
+        SAMPLE_POSTS, response_status=401
+    )
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+    with pytest.raises(TruthSocialAccessDeniedError, match="HTTP 401"):
+        client.fetch_latest_posts(max_posts=10)
+
+
+def test_fetch_raises_blocked_error_on_captcha_page(monkeypatch):
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(
+        [],
+        response_url=UNRELATED_URL,
+        page_title="Just a moment...",
+        page_content="<html><body>Verify you are human before continuing</body></html>",
+    )
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+    with pytest.raises(TruthSocialBlockedError, match="blocking Playwright access"):
+        client.fetch_latest_posts(max_posts=10)
+
+
+def test_fetch_raises_access_denied_error_on_login_page(monkeypatch):
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(
+        [],
+        response_url=UNRELATED_URL,
+        page_title="Log in - Truth Social",
+        page_content="<html><body>Authentication required. Please sign in.</body></html>",
+    )
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+    with pytest.raises(TruthSocialAccessDeniedError, match="login or access-denied"):
+        client.fetch_latest_posts(max_posts=10)
+
+
+def test_fetch_raises_timeout_when_navigation_times_out_without_posts(monkeypatch):
     mock_pw, mock_stealth_type, _ = make_playwright_stack(
         SAMPLE_POSTS, goto_raises=TimeoutError("networkidle timeout")
     )
@@ -244,9 +309,8 @@ def test_fetch_continues_after_networkidle_timeout(monkeypatch):
     monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
-    # No posts captured because the response handler never fires (goto raised before it)
-    posts = client.fetch_latest_posts(max_posts=10)
-    assert posts == []
+    with pytest.raises(TruthSocialTimeoutError, match="navigation timed out"):
+        client.fetch_latest_posts(max_posts=10)
 
 
 def test_fetch_strips_at_prefix_from_username(monkeypatch):
