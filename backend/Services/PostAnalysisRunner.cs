@@ -10,6 +10,8 @@ public sealed class PostAnalysisRunner(
     IMarketImpactAnalyzer analyzer,
     ILogger<PostAnalysisRunner> logger) : IPostAnalysisRunner
 {
+    private const string NoTextContentPlaceholder = "[No text content]";
+
     public async Task<PostAnalysisRunResult> AnalyzePendingPostsAsync(
         CancellationToken cancellationToken = default)
     {
@@ -51,6 +53,16 @@ public sealed class PostAnalysisRunner(
 
             try
             {
+                if (!IsAnalyzableContent(post.Content))
+                {
+                    skippedCount++;
+                    logger.LogInformation(
+                        "Skipping truth post {PostId} ({ExternalId}) because it has placeholder content.",
+                        post.Id,
+                        post.ExternalId);
+                    continue;
+                }
+
                 logger.LogInformation(
                     "Analyzing truth post {PostId} ({ExternalId}).",
                     post.Id,
@@ -135,5 +147,13 @@ public sealed class PostAnalysisRunner(
             AnalyzedPostIds = analyzedPostIds,
             FailedPostIds = failedPostIds
         };
+    }
+
+    public static bool IsAnalyzableContent(string? content)
+    {
+        return !string.Equals(
+            content,
+            NoTextContentPlaceholder,
+            StringComparison.Ordinal);
     }
 }

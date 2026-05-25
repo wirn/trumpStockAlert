@@ -39,6 +39,11 @@ public sealed class PostAnalysisRunnerTests : IDisposable
         };
     }
 
+    private PostAnalysisRunner CreateRunner(IMarketImpactAnalyzer analyzer)
+    {
+        return new PostAnalysisRunner(_db, analyzer, NullLogger<PostAnalysisRunner>.Instance);
+    }
+
     [Fact]
     public async Task AnalyzePendingPostsAsync_NoPosts_ReturnsZeroCounts()
     {
@@ -106,6 +111,57 @@ public sealed class PostAnalysisRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task AnalyzePendingPostsAsync_PlaceholderOnlyPost_IsSkipped()
+    {
+        var post = MakePost("[No text content]");
+        _db.TruthPosts.Add(post);
+        await _db.SaveChangesAsync();
+
+        var result = await _runner.AnalyzePendingPostsAsync();
+
+        Assert.Equal(0, result.AnalyzedCount);
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(0, result.FailedCount);
+        Assert.Empty(result.AnalyzedPostIds);
+        Assert.Equal(0, await _db.PostAnalyses.CountAsync());
+    }
+
+    [Fact]
+    public async Task AnalyzePendingPostsAsync_MixedBatch_SkipsPlaceholderAndAnalyzesRealContent()
+    {
+        var realPost = MakePost("tariffs on China");
+        var placeholderPost = MakePost("[No text content]");
+        _db.TruthPosts.AddRange(realPost, placeholderPost);
+        await _db.SaveChangesAsync();
+
+        var result = await _runner.AnalyzePendingPostsAsync();
+
+        Assert.Equal(1, result.AnalyzedCount);
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(0, result.FailedCount);
+        Assert.Contains(realPost.Id, result.AnalyzedPostIds);
+        Assert.DoesNotContain(placeholderPost.Id, result.AnalyzedPostIds);
+        Assert.Equal(1, await _db.PostAnalyses.CountAsync());
+        Assert.NotNull(await _db.PostAnalyses.SingleOrDefaultAsync(a => a.PostId == realPost.Id));
+        Assert.Null(await _db.PostAnalyses.SingleOrDefaultAsync(a => a.PostId == placeholderPost.Id));
+    }
+
+    [Fact]
+    public async Task AnalyzePendingPostsAsync_DoesNotInvokeAnalyzerForPlaceholderPost()
+    {
+        var analyzer = new CountingAnalyzer();
+        var runner = CreateRunner(analyzer);
+        _db.TruthPosts.Add(MakePost("[No text content]"));
+        await _db.SaveChangesAsync();
+
+        var result = await runner.AnalyzePendingPostsAsync();
+
+        Assert.Equal(0, result.AnalyzedCount);
+        Assert.Equal(1, result.SkippedCount);
+        Assert.Equal(0, analyzer.CallCount);
+    }
+
+    [Fact]
     public async Task AnalyzePendingPostsAsync_MixedPendingAndAnalyzed_OnlyAnalyzesPending()
     {
         var analyzed = MakePost("already analyzed");
@@ -126,6 +182,25 @@ public sealed class PostAnalysisRunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task AnalyzePendingPostsAsync_Rerun_DedupesAnalyzedPostsAndStillSkipsPlaceholder()
+    {
+        var realPost = MakePost("tariffs on China");
+        var placeholderPost = MakePost("[No text content]");
+        _db.TruthPosts.AddRange(realPost, placeholderPost);
+        await _db.SaveChangesAsync();
+
+        await _runner.AnalyzePendingPostsAsync();
+        var secondResult = await _runner.AnalyzePendingPostsAsync();
+
+        Assert.Equal(0, secondResult.AnalyzedCount);
+        Assert.Equal(2, secondResult.SkippedCount);
+        Assert.Equal(0, secondResult.FailedCount);
+        Assert.Equal(1, await _db.PostAnalyses.CountAsync());
+        Assert.NotNull(await _db.PostAnalyses.SingleOrDefaultAsync(a => a.PostId == realPost.Id));
+        Assert.Null(await _db.PostAnalyses.SingleOrDefaultAsync(a => a.PostId == placeholderPost.Id));
+    }
+
+    [Fact]
     public async Task AnalyzePendingPostsAsync_AnalyzedPostIds_ContainsCorrectIds()
     {
         var post = MakePost();
@@ -135,5 +210,20 @@ public sealed class PostAnalysisRunnerTests : IDisposable
         var result = await _runner.AnalyzePendingPostsAsync();
 
         Assert.Contains(post.Id, result.AnalyzedPostIds);
+    }
+
+    private sealed class CountingAnalyzer : IMarketImpactAnalyzer
+    {
+        private readonly MockMarketImpactAnalyzer _inner = new();
+
+        public int CallCount { get; private set; }
+
+        public Task<MarketImpactAnalysisResult> AnalyzeAsync(
+            TruthPost post,
+            CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            return _inner.AnalyzeAsync(post, cancellationToken);
+        }
     }
 }
