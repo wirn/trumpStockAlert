@@ -14,14 +14,25 @@ namespace TrumpStockAlert.Api.Data.Migrations
                 name: "CK_post_analyses_Confidence_1_100",
                 table: "post_analyses");
 
-            migrationBuilder.AlterColumn<int>(
-                name: "Direction",
-                table: "post_analyses",
-                type: "integer",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying(30)",
-                oldMaxLength: 30);
+Z            // AlterColumn<int> cannot cast varchar → integer automatically on PostgreSQL.
+            // Explicit USING maps the old string values to their integer equivalents.
+            migrationBuilder.Sql("""
+                ALTER TABLE post_analyses
+                ALTER COLUMN "Direction"
+                TYPE integer
+                USING CASE
+                    WHEN "Direction" = 'negative' THEN -35
+                    WHEN "Direction" = 'positive' THEN 25
+                    WHEN "Direction" = 'neutral'  THEN 0
+                    WHEN "Direction" IS NULL       THEN 0
+                    ELSE CAST("Direction" AS integer)
+                END;
+                """);
+
+            // Backfill any NULL Confidence values before adding the NOT NULL constraint.
+            migrationBuilder.Sql("""
+                UPDATE post_analyses SET "Confidence" = 0 WHERE "Confidence" IS NULL;
+                """);
 
             migrationBuilder.AlterColumn<int>(
                 name: "Confidence",
@@ -55,14 +66,18 @@ namespace TrumpStockAlert.Api.Data.Migrations
                 name: "CK_post_analyses_Direction_neg50_50",
                 table: "post_analyses");
 
-            migrationBuilder.AlterColumn<string>(
-                name: "Direction",
-                table: "post_analyses",
-                type: "character varying(30)",
-                maxLength: 30,
-                nullable: false,
-                oldClrType: typeof(int),
-                oldType: "integer");
+            // Reverse the integer → varchar conversion with best-effort label mapping.
+            migrationBuilder.Sql("""
+                ALTER TABLE post_analyses
+                ALTER COLUMN "Direction"
+                TYPE character varying(30)
+                USING CASE
+                    WHEN "Direction" = -35 THEN 'negative'
+                    WHEN "Direction" =  25 THEN 'positive'
+                    WHEN "Direction" =   0 THEN 'neutral'
+                    ELSE "Direction"::text
+                END;
+                """);
 
             migrationBuilder.AlterColumn<int>(
                 name: "Confidence",
