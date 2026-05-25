@@ -6,6 +6,9 @@ interval_seconds="${COLLECTOR_SCHEDULER_INTERVAL_SECONDS:-300}"
 jitter_seconds="${COLLECTOR_SCHEDULER_JITTER_SECONDS:-120}"
 backoff_seconds="${COLLECTOR_SCHEDULER_BACKOFF_SECONDS:-900}"
 enabled="${COLLECTOR_SCHEDULER_ENABLED:-true}"
+analysis_enabled="${COLLECTOR_SCHEDULER_ANALYSIS_ENABLED:-true}"
+analysis_url="${COLLECTOR_SCHEDULER_ANALYSIS_URL:-http://api:8080/api/analyses/run}"
+run_once="${COLLECTOR_SCHEDULER_RUN_ONCE:-false}"
 
 timestamp() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
@@ -59,6 +62,53 @@ random_jitter() {
   od -An -N4 -tu4 /dev/urandom | awk -v max="$jitter_seconds" '{ print $1 % (max + 1) }'
 }
 
+json_field() {
+  printf '%s' "$1" | jq -r --arg key "$2" '.[$key] // ""' 2>/dev/null || true
+}
+
+run_analysis() {
+  if [ "$analysis_enabled" != "true" ] && [ "$analysis_enabled" != "1" ]; then
+    log "Analysis run skipped. COLLECTOR_SCHEDULER_ANALYSIS_ENABLED=$analysis_enabled"
+    return 0
+  fi
+
+  response_file="$(mktemp)"
+  error_file="$(mktemp)"
+  curl_exit_code=0
+
+  http_status="$(
+    curl -sS \
+      -X POST \
+      -H "X-TrumpStockAlert-Scheduler-Key: ${SCHEDULER_API_KEY:-}" \
+      -o "$response_file" \
+      -w "%{http_code}" \
+      "$analysis_url" \
+      2>"$error_file"
+  )" || curl_exit_code=$?
+
+  response_body="$(cat "$response_file")"
+  error_body="$(cat "$error_file")"
+  rm -f "$response_file" "$error_file"
+
+  if [ "$curl_exit_code" -ne 0 ]; then
+    log "Analysis run request failed. ExitCode=$curl_exit_code Error=$error_body"
+    return 0
+  fi
+
+  analyzed_count="$(json_field "$response_body" "analyzedCount")"
+  skipped_count="$(json_field "$response_body" "skippedCount")"
+  error_count="$(json_field "$response_body" "errorCount")"
+  message="$(json_field "$response_body" "message")"
+
+  if [ "$http_status" -ge 200 ] && [ "$http_status" -lt 300 ]; then
+    log "Analysis run completed. HttpStatus=$http_status AnalyzedCount=$analyzed_count SkippedCount=$skipped_count ErrorCount=$error_count Message=$message"
+    return 0
+  fi
+
+  log "Analysis run failed. HttpStatus=$http_status AnalyzedCount=$analyzed_count SkippedCount=$skipped_count ErrorCount=$error_count Message=$message ResponseBody=$response_body"
+  return 0
+}
+
 if [ "$enabled" != "true" ] && [ "$enabled" != "1" ]; then
   log "Collector scheduler disabled. COLLECTOR_SCHEDULER_ENABLED=$enabled"
   while true; do
@@ -66,7 +116,7 @@ if [ "$enabled" != "true" ] && [ "$enabled" != "1" ]; then
   done
 fi
 
-log "Collector scheduler started. IntervalSeconds=$interval_seconds JitterSeconds=$jitter_seconds BackoffSeconds=$backoff_seconds HealthUrl=$health_url"
+log "Collector scheduler started. IntervalSeconds=$interval_seconds JitterSeconds=$jitter_seconds BackoffSeconds=$backoff_seconds HealthUrl=$health_url AnalysisEnabled=$analysis_enabled AnalysisUrl=$analysis_url"
 wait_for_api
 
 while true; do
@@ -77,10 +127,20 @@ while true; do
 
   if [ "$collector_exit_code" -eq 0 ]; then
     log "Collector run succeeded."
+    run_analysis
   else
     log "Collector run failed. ExitCode=$collector_exit_code Applying backoff. BackoffSeconds=$backoff_seconds"
     sleep "$backoff_seconds"
+    if [ "$run_once" = "true" ] || [ "$run_once" = "1" ]; then
+      log "Collector scheduler run-once mode completed after collector failure."
+      exit "$collector_exit_code"
+    fi
     continue
+  fi
+
+  if [ "$run_once" = "true" ] || [ "$run_once" = "1" ]; then
+    log "Collector scheduler run-once mode completed."
+    exit 0
   fi
 
   jitter="$(random_jitter)"

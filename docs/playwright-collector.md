@@ -17,6 +17,8 @@ The Python collector supports two client modes. Playwright is the preferred mode
 | `COLLECTOR_LOOKBACK_MINUTES` | `5` | Lookback window (used in normal mode) |
 | `COLLECTOR_STORE_MODE` | `api` | Always `api` in Docker |
 | `TRUTH_POST_API_BASE_URL` | `http://api:8080` | Backend URL (set in docker-compose.yml) |
+| `COLLECTOR_SCHEDULER_ANALYSIS_ENABLED` | `true` | Run analysis after successful collector runs |
+| `COLLECTOR_SCHEDULER_ANALYSIS_URL` | `http://api:8080/api/analyses/run` | Backend analysis endpoint called by scheduler |
 
 ## Run the Playwright collector manually
 
@@ -50,8 +52,9 @@ Flow:
 1. Scheduler waits for `GET /health` to return 200.
 2. Every `COLLECTOR_SCHEDULER_INTERVAL_SECONDS` ± jitter seconds, it runs `docker compose run --rm --build collector`.
 3. The one-shot collector container starts, fetches posts via Playwright, saves them through `POST /api/truth-posts`, then exits.
-4. If the run fails (non-zero exit), a backoff of `COLLECTOR_SCHEDULER_BACKOFF_SECONDS` is applied before the next attempt.
-5. Duplicate posts are silently skipped by the backend (unique constraint on `(source, external_id)`).
+4. If the collector succeeds and `COLLECTOR_SCHEDULER_ANALYSIS_ENABLED=true`, the scheduler calls `POST /api/analyses/run` with `X-TrumpStockAlert-Scheduler-Key`.
+5. If the collector fails (non-zero exit), analysis is skipped and a backoff of `COLLECTOR_SCHEDULER_BACKOFF_SECONDS` is applied before the next attempt.
+6. Duplicate posts are silently skipped by the backend (unique constraint on `(source, external_id)`), and analysis only processes unanalyzed posts.
 
 ### Security note
 
