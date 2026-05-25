@@ -14,7 +14,7 @@ namespace TrumpStockAlert.Api.Data.Migrations
                 name: "CK_post_analyses_Confidence_1_100",
                 table: "post_analyses");
 
-Z            // AlterColumn<int> cannot cast varchar → integer automatically on PostgreSQL.
+            // AlterColumn<int> cannot cast varchar → integer automatically on PostgreSQL.
             // Explicit USING maps the old string values to their integer equivalents.
             migrationBuilder.Sql("""
                 ALTER TABLE post_analyses
