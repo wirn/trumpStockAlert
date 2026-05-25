@@ -12,15 +12,14 @@ public sealed class PostAnalysis
 
     public int MarketImpactScore { get; set; }
 
-    [Required]
-    public string Direction { get; set; } = string.Empty;
+    public int Direction { get; set; }
 
     [Required]
     public string Reasoning { get; set; } = string.Empty;
 
     public string? AffectedAssetsJson { get; set; }
 
-    public int? Confidence { get; set; }
+    public int Confidence { get; set; }
 
     [Required]
     public string AnalyzerVersion { get; set; } = string.Empty;

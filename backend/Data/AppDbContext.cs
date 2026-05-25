@@ -70,7 +70,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
                 table.HasCheckConstraint(
                     "CK_post_analyses_Confidence_1_100",
-                    "\"Confidence\" IS NULL OR (\"Confidence\" >= 1 AND \"Confidence\" <= 100)");
+                    "\"Confidence\" >= 1 AND \"Confidence\" <= 100");
+
+                table.HasCheckConstraint(
+                    "CK_post_analyses_Direction_neg50_50",
+                    "\"Direction\" >= -50 AND \"Direction\" <= 50");
             });
 
             entity.HasKey(analysis => analysis.Id);
@@ -79,8 +83,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .IsRequired();
 
             entity.Property(analysis => analysis.Direction)
-                .IsRequired()
-                .HasMaxLength(30);
+                .IsRequired();
 
             entity.Property(analysis => analysis.Reasoning)
                 .IsRequired();

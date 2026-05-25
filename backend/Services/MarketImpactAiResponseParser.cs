@@ -4,14 +4,6 @@ namespace TrumpStockAlert.Api.Services;
 
 public sealed class MarketImpactAiResponseParser
 {
-    private static readonly HashSet<string> ValidDirections = new(StringComparer.Ordinal)
-    {
-        "Positive",
-        "Negative",
-        "Neutral",
-        "Uncertain"
-    };
-
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -74,15 +66,9 @@ public sealed class MarketImpactAiResponseParser
             throw new MarketImpactAiResponseParseException("marketImpactScore must be an integer from 1 to 100.");
         }
 
-        if (string.IsNullOrWhiteSpace(response.Direction))
+        if (response.Direction is < -50 or > 50)
         {
-            throw new MarketImpactAiResponseParseException("direction is required.");
-        }
-
-        if (!ValidDirections.Contains(response.Direction))
-        {
-            throw new MarketImpactAiResponseParseException(
-                "direction must be one of: Positive, Negative, Neutral, Uncertain.");
+            throw new MarketImpactAiResponseParseException("direction must be an integer from -50 to 50.");
         }
 
         if (string.IsNullOrWhiteSpace(response.Reasoning))

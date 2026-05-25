@@ -128,24 +128,24 @@ public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
         return 40;
     }
 
-    private static string GetDirection(string content, bool isLowImpact)
+    private static int GetDirection(string content, bool isLowImpact)
     {
         if (ContainsAny(content, NegativeDirectionKeywords))
         {
-            return "Negative";
+            return -35;
         }
 
         if (ContainsAny(content, PositiveDirectionKeywords))
         {
-            return "Positive";
+            return 25;
         }
 
         if (isLowImpact)
         {
-            return "Neutral";
+            return 0;
         }
 
-        return "Uncertain";
+        return 0;
     }
 
     private static IReadOnlyList<string> GetAffectedAssets(string content)
@@ -175,19 +175,21 @@ public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
 
     private static string GetReasoning(
         int score,
-        string direction,
+        int direction,
         IReadOnlyList<string> highMatches,
         IReadOnlyList<string> mediumMatches,
         IReadOnlyList<string> lowMatches)
     {
+        var directionLabel = direction < 0 ? "negative" : direction > 0 ? "positive" : "neutral";
+
         if (highMatches.Count > 0)
         {
-            return $"Mock analysis found high-impact market keywords ({string.Join(", ", highMatches)}), producing a {direction.ToLowerInvariant()} score of {score}.";
+            return $"Mock analysis found high-impact market keywords ({string.Join(", ", highMatches)}), producing a {directionLabel} score of {score}.";
         }
 
         if (mediumMatches.Count > 0)
         {
-            return $"Mock analysis found market-related keywords ({string.Join(", ", mediumMatches)}), producing a {direction.ToLowerInvariant()} score of {score}.";
+            return $"Mock analysis found market-related keywords ({string.Join(", ", mediumMatches)}), producing a {directionLabel} score of {score}.";
         }
 
         if (lowMatches.Count > 0)

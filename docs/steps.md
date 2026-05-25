@@ -109,11 +109,11 @@
     - [x] 8k. Verifiera att endast en `fetcher_runs`-rad skapas per scheduler-körning
 
 - [ ] 9. AI-analys
-    - [ ] 9a. Bygg mock analyzer
-    - [ ] 9b. Analysera oanalyserade poster
-    - [ ] 9c. Sätt market impact score
-    - [ ] 9d. Skapa AI-prompt och JSON-format
-    - [ ] 9e. Koppla in riktig AI-klient
+    - [x] 9a. Definiera analysmodell/JSON-format
+    - [ ] 9b. Bygg mock analyzer
+    - [ ] 9c. Analysera oanalyserade poster
+    - [ ] 9d. Spara analys i `post_analyses`
+    - [ ] 9e. Koppla riktig AI-klient
 
 - [ ] 10. Spara AI-analys
     - [ ] 10a. Spara score, reasoning och affected assets
