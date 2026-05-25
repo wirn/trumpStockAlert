@@ -120,14 +120,19 @@
     - [x] 9f. Skydda analys-endpoint med `X-TrumpStockAlert-Scheduler-Key`
     - [x] 9g. Koppla scheduler så analys körs efter lyckad collectorkörning
     - [x] 9h. Hoppa över analys för poster där `Content = "[No text content]"`
-    - [ ] 9i. Förbättra mock analyzer så den matchar slutligt AI-kontrakt bättre
-    - [ ] 9j. Lägg till provider-abstraktion, exempelvis `IAnalysisProvider`
-    - [ ] 9k. Lägg till config för `Analyzer__Provider=Mock|OpenAI`
-    - [ ] 9l. Bygg riktig OpenAI-analyzer bakom samma interface
-    - [ ] 9m. Lägg OpenAI API-key i `.env`/secrets, aldrig i Git
-    - [ ] 9n. Lägg till timeout, felhantering och loggning för AI-anrop
-    - [ ] 9o. Testa riktig AI-analys manuellt på ett fåtal poster
-    - [ ] 9p. Slå på riktig AI-analys i scheduler när manuell test är stabil
+    - [x] 9i. Säkerställ att `[No text content]` aldrig skickas till analyzer och aldrig sparas i `post_analyses`
+    - [x] 9j. Rapportera separata skip-counts för redan analyserade poster och poster utan textinnehåll
+    - [x] 9k. Uppdatera `POST /api/analyses/run` så svaret innehåller `SkippedAlreadyAnalyzedCount` och `SkippedNoTextContentCount`
+    - [x] 9l. Behåll bakåtkompatibla fält i analyskörningens response: `AnalyzedCount`, `SkippedCount`, `ErrorCount` och `Message`
+    - [x] 9m. Verifiera att scheduler fortfarande bara kör analys efter lyckad collectorkörning
+    - [ ] 9n. Förbättra mock analyzer så den matchar slutligt AI-kontrakt bättre
+    - [ ] 9o. Lägg till provider-abstraktion, exempelvis `IAnalysisProvider`
+    - [ ] 9p. Lägg till config för `Analyzer__Provider=Mock|OpenAI`
+    - [ ] 9q. Bygg riktig OpenAI-analyzer bakom samma interface
+    - [ ] 9r. Lägg OpenAI API-key i `.env`/secrets, aldrig i Git
+    - [ ] 9s. Lägg till timeout, felhantering och loggning för AI-anrop
+    - [ ] 9t. Testa riktig AI-analys manuellt på ett fåtal poster
+    - [ ] 9u. Slå på riktig AI-analys i scheduler när manuell test är stabil
 
 - [~] 10. Spara och visa AI-analys
     - [x] 10a. Spara score, reasoning och affected assets
@@ -174,7 +179,8 @@
     - [x] 14c. Backend loggar HTTP-status/response body vid collector-fel
     - [x] 14d. Scheduler loggar timestamp, status, body, jitter och backoff
     - [x] 14e. Scheduler loggar analysresultat efter collector
-    - [ ] 14f. Centralisera/rotera containerloggar
+    - [x] 14f. Backend loggar tydlig analys-breakdown: oanalyserade, redan analyserade, utan text, analyserade och misslyckade
+    - [ ] 14g. Centralisera/rotera containerloggar
 
 - [~] 15. Driftstabilitet
     - [x] 15a. Lägg `restart: unless-stopped` på alla långkörande containers

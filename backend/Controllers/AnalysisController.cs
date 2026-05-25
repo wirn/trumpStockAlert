@@ -8,7 +8,7 @@ namespace TrumpStockAlert.Api.Controllers;
 [ApiController]
 [Route("api/analysis")]
 public sealed class AnalysisController(
-    IMarketImpactAnalyzer analyzer,
+    MockMarketImpactAnalyzer mockAnalyzer,
     OpenAiMarketImpactAnalyzer openAiAnalyzer,
     IPostAnalysisRunner analysisRunner,
     MarketImpactPromptBuilder promptBuilder,
@@ -45,7 +45,7 @@ public sealed class AnalysisController(
             SavedAtUtc = DateTimeOffset.UtcNow
         };
 
-        var result = await analyzer.AnalyzeAsync(post, cancellationToken);
+        var result = await mockAnalyzer.AnalyzeAsync(post, cancellationToken);
         return Ok(result);
     }
 

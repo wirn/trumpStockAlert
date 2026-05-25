@@ -8,18 +8,18 @@ public sealed class MarketImpactAiResponseParserTests
 
     private static string BuildJson(
         int marketImpactScore = 50,
-        int direction = 0,
+        int confidenceScore = 50,
+        string direction = "neutral",
         string reasoning = "Some reasoning.",
-        string affectedAssets = @"[""US equities""]",
-        int confidence = 50)
+        string affectedAssets = @"[""US equities""]")
     {
         return $$"""
             {
               "marketImpactScore": {{marketImpactScore}},
-              "direction": {{direction}},
+              "confidenceScore": {{confidenceScore}},
+              "direction": "{{direction}}",
               "reasoning": "{{reasoning}}",
-              "affectedAssets": {{affectedAssets}},
-              "confidence": {{confidence}}
+              "affectedAssets": {{affectedAssets}}
             }
             """;
     }
@@ -27,13 +27,13 @@ public sealed class MarketImpactAiResponseParserTests
     [Fact]
     public void ParseAndValidate_ValidResponse_ReturnsCorrectValues()
     {
-        var json = BuildJson(marketImpactScore: 75, direction: -35, confidence: 70);
+        var json = BuildJson(marketImpactScore: 75, confidenceScore: 70, direction: "negative");
 
         var result = _parser.ParseAndValidate(json);
 
         Assert.Equal(75, result.MarketImpactScore);
-        Assert.Equal(-35, result.Direction);
-        Assert.Equal(70, result.Confidence);
+        Assert.Equal(70, result.ConfidenceScore);
+        Assert.Equal("negative", result.Direction);
     }
 
     [Theory]
@@ -64,27 +64,25 @@ public sealed class MarketImpactAiResponseParserTests
     }
 
     [Theory]
-    [InlineData(-50)]
-    [InlineData(0)]
-    [InlineData(50)]
-    [InlineData(-1)]
-    [InlineData(25)]
-    [InlineData(-25)]
-    public void ParseAndValidate_DirectionInRange_DoesNotThrow(int direction)
+    [InlineData("positive")]
+    [InlineData("negative")]
+    [InlineData("neutral")]
+    [InlineData("mixed")]
+    [InlineData("MIXED")]
+    public void ParseAndValidate_AllowedDirection_DoesNotThrow(string direction)
     {
         var json = BuildJson(direction: direction);
 
         var result = _parser.ParseAndValidate(json);
 
-        Assert.Equal(direction, result.Direction);
+        Assert.Equal(direction.ToLowerInvariant(), result.Direction);
     }
 
     [Theory]
-    [InlineData(-51)]
-    [InlineData(51)]
-    [InlineData(-100)]
-    [InlineData(100)]
-    public void ParseAndValidate_DirectionOutOfRange_Throws(int direction)
+    [InlineData("bullish")]
+    [InlineData("")]
+    [InlineData("uncertain")]
+    public void ParseAndValidate_InvalidDirection_Throws(string direction)
     {
         var json = BuildJson(direction: direction);
 
@@ -97,14 +95,14 @@ public sealed class MarketImpactAiResponseParserTests
     [Theory]
     [InlineData(0)]
     [InlineData(101)]
-    public void ParseAndValidate_ConfidenceOutOfRange_Throws(int confidence)
+    public void ParseAndValidate_ConfidenceScoreOutOfRange_Throws(int confidenceScore)
     {
-        var json = BuildJson(confidence: confidence);
+        var json = BuildJson(confidenceScore: confidenceScore);
 
         var ex = Assert.Throws<MarketImpactAiResponseParseException>(
             () => _parser.ParseAndValidate(json));
 
-        Assert.Contains("confidence", ex.Message);
+        Assert.Contains("confidenceScore", ex.Message);
     }
 
     [Fact]

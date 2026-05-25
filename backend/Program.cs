@@ -45,18 +45,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<ITruthPostService, TruthPostService>();
 builder.Services.AddScoped<MockMarketImpactAnalyzer>();
 builder.Services.AddScoped<OpenAiMarketImpactAnalyzer>();
-builder.Services.AddScoped<IMarketImpactAnalyzer>(serviceProvider =>
-{
-    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-    var provider = configuration["Analyzer:Provider"];
-
-    if (string.Equals(provider, "OpenAI", StringComparison.OrdinalIgnoreCase))
-    {
-        return serviceProvider.GetRequiredService<OpenAiMarketImpactAnalyzer>();
-    }
-
-    return serviceProvider.GetRequiredService<MockMarketImpactAnalyzer>();
-});
+builder.Services.AddSingleton<IOpenAiChatCompletionClient, OpenAiChatCompletionClient>();
+builder.Services.AddScoped<IMarketImpactAnalyzer>(AnalyzerProviderSelector.Select);
 builder.Services.AddScoped<IPostAnalysisRunner, PostAnalysisRunner>();
 builder.Services.AddScoped<ICollectorProcessRunner, CollectorProcessRunner>();
 builder.Services.AddScoped<ICollectorTestRunner, CollectorTestRunner>();
