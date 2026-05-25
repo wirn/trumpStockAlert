@@ -12,7 +12,8 @@ public sealed class PostAnalysis
 
     public int MarketImpactScore { get; set; }
 
-    public int Direction { get; set; }
+    [Required]
+    public string Direction { get; set; } = string.Empty;
 
     [Required]
     public string Reasoning { get; set; } = string.Empty;

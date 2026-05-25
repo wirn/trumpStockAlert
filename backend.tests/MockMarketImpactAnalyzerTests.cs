@@ -1,3 +1,4 @@
+using System.Text.Json;
 using TrumpStockAlert.Api.Models;
 using TrumpStockAlert.Api.Services;
 
@@ -22,29 +23,13 @@ public sealed class MockMarketImpactAnalyzerTests
 
     [Theory]
     [InlineData("We are placing huge tariffs on China products")]
-    [InlineData("The Federal Reserve must lower interest rates now")]
-    [InlineData("Sanctions on Russia are in place")]
+    [InlineData("The Fed must lower interest rates now")]
+    [InlineData("Tesla and Nvidia are moving fast in this market")]
     public async Task AnalyzeAsync_HighImpactKeywords_ReturnsHighScore(string content)
     {
-        var post = MakePost(content);
+        var result = await _analyzer.AnalyzeAsync(MakePost(content));
 
-        var result = await _analyzer.AnalyzeAsync(post);
-
-        Assert.True(result.MarketImpactScore >= 80,
-            $"Expected score >= 80 for high-impact content, got {result.MarketImpactScore}");
-    }
-
-    [Theory]
-    [InlineData("The stock market is looking great today")]
-    [InlineData("Jobs numbers are up, economy is strong")]
-    [InlineData("Bitcoin and crypto are the future")]
-    public async Task AnalyzeAsync_MediumImpactKeywords_ReturnsMediumScore(string content)
-    {
-        var post = MakePost(content);
-
-        var result = await _analyzer.AnalyzeAsync(post);
-
-        Assert.InRange(result.MarketImpactScore, 50, 79);
+        Assert.InRange(result.MarketImpactScore, 70, 100);
     }
 
     [Theory]
@@ -52,136 +37,88 @@ public sealed class MockMarketImpactAnalyzerTests
     [InlineData("Congratulations to our great endorsement winners")]
     public async Task AnalyzeAsync_LowImpactKeywords_ReturnsLowScore(string content)
     {
-        var post = MakePost(content);
+        var result = await _analyzer.AnalyzeAsync(MakePost(content));
 
-        var result = await _analyzer.AnalyzeAsync(post);
+        Assert.InRange(result.MarketImpactScore, 1, 39);
+        Assert.Equal("neutral", result.Direction);
+    }
 
-        Assert.True(result.MarketImpactScore < 50,
-            $"Expected score < 50 for low-impact content, got {result.MarketImpactScore}");
+    [Fact]
+    public async Task AnalyzeAsync_MixedDirectionKeywords_ReturnsMixedDirection()
+    {
+        var result = await _analyzer.AnalyzeAsync(
+            MakePost("Tariffs are coming, but a trade deal and tax cuts will support growth."));
+
+        Assert.Equal("mixed", result.Direction);
+    }
+
+    [Fact]
+    public async Task AnalyzeAsync_AffectedAssets_ArePopulatedFromKeywords()
+    {
+        var result = await _analyzer.AnalyzeAsync(
+            MakePost("Tariffs on China, Fed rates, oil, Bitcoin, Tesla, and Nvidia are all in focus."));
+
+        Assert.Contains("SP500", result.AffectedAssets);
+        Assert.Contains("China equities", result.AffectedAssets);
+        Assert.Contains("Treasuries", result.AffectedAssets);
+        Assert.Contains("Oil", result.AffectedAssets);
+        Assert.Contains("Bitcoin", result.AffectedAssets);
+        Assert.Contains("Tesla", result.AffectedAssets);
+        Assert.Contains("Nvidia", result.AffectedAssets);
     }
 
     [Theory]
-    [InlineData("tariffs on China will crush trade")]
-    [InlineData("sanctions imposed on Iran")]
-    [InlineData("trade war escalating rapidly")]
-    public async Task AnalyzeAsync_NegativeKeywords_ReturnsNegativeDirection(string content)
+    [InlineData("tariffs on China now")]
+    [InlineData("great rally tonight!")]
+    [InlineData("economy and jobs")]
+    [InlineData("")]
+    public async Task AnalyzeAsync_ConfidenceScoreIsAlwaysInRange(string content)
     {
-        var post = MakePost(content);
+        var result = await _analyzer.AnalyzeAsync(MakePost(content));
 
-        var result = await _analyzer.AnalyzeAsync(post);
-
-        Assert.True(result.Direction < 0,
-            $"Expected negative direction for '{content}', got {result.Direction}");
-    }
-
-    [Theory]
-    [InlineData("tax cuts for all Americans will grow the economy")]
-    [InlineData("deregulation is creating jobs across the country")]
-    public async Task AnalyzeAsync_PositiveKeywords_ReturnsPositiveDirection(string content)
-    {
-        var post = MakePost(content);
-
-        var result = await _analyzer.AnalyzeAsync(post);
-
-        Assert.True(result.Direction > 0,
-            $"Expected positive direction for '{content}', got {result.Direction}");
+        Assert.InRange(result.ConfidenceScore, 1, 100);
     }
 
     [Fact]
-    public async Task AnalyzeAsync_LowImpactContent_ReturnsNeutralDirection()
+    public async Task AnalyzeAsync_IsCaseInsensitive()
     {
-        var post = MakePost("Thank you to everyone at the rally tonight!");
+        var result = await _analyzer.AnalyzeAsync(MakePost("BITCOIN and CRYPTO are moving."));
 
-        var result = await _analyzer.AnalyzeAsync(post);
-
-        Assert.Equal(0, result.Direction);
+        Assert.InRange(result.MarketImpactScore, 70, 100);
+        Assert.Contains("Bitcoin", result.AffectedAssets);
     }
 
     [Fact]
-    public async Task AnalyzeAsync_ScoreIsAlwaysInRange()
+    public async Task AnalyzeAsync_ReturnsFinalContractShapeInRawResponse()
     {
-        var posts = new[]
-        {
-            "tariffs on China now",
-            "great rally tonight!",
-            "stock market at all-time high",
-            "just had a great birthday party",
-            string.Empty
-        };
+        var result = await _analyzer.AnalyzeAsync(MakePost("Tariffs on China affect trade."));
+        using var document = JsonDocument.Parse(result.RawAiResponse);
+        var root = document.RootElement;
 
-        foreach (var content in posts)
-        {
-            var result = await _analyzer.AnalyzeAsync(MakePost(content));
-            Assert.InRange(result.MarketImpactScore, 1, 100);
-        }
+        Assert.True(root.TryGetProperty("marketImpactScore", out _));
+        Assert.True(root.TryGetProperty("confidenceScore", out _));
+        Assert.True(root.TryGetProperty("direction", out var direction));
+        Assert.True(root.TryGetProperty("reasoning", out _));
+        Assert.True(root.TryGetProperty("affectedAssets", out _));
+        Assert.Equal("negative", direction.GetString());
     }
 
     [Fact]
-    public async Task AnalyzeAsync_DirectionIsAlwaysInRange()
+    public async Task AnalyzeAsync_ReturnsNonEmptyReasoningAndAnalyzerVersion()
     {
-        var posts = new[]
-        {
-            "tariffs on China now",
-            "tax cuts for all",
-            "thank you rally crowd",
-            string.Empty
-        };
-
-        foreach (var content in posts)
-        {
-            var result = await _analyzer.AnalyzeAsync(MakePost(content));
-            Assert.InRange(result.Direction, -50, 50);
-        }
-    }
-
-    [Fact]
-    public async Task AnalyzeAsync_ConfidenceIsAlwaysInRange()
-    {
-        var post = MakePost("tariffs on China now");
-
-        var result = await _analyzer.AnalyzeAsync(post);
-
-        Assert.InRange(result.Confidence, 1, 100);
-    }
-
-    [Fact]
-    public async Task AnalyzeAsync_ReturnsNonEmptyReasoning()
-    {
-        var post = MakePost("tariffs on China now");
-
-        var result = await _analyzer.AnalyzeAsync(post);
+        var result = await _analyzer.AnalyzeAsync(MakePost("tariffs on China now"));
 
         Assert.False(string.IsNullOrWhiteSpace(result.Reasoning));
-    }
-
-    [Fact]
-    public async Task AnalyzeAsync_ReturnsNonEmptyAffectedAssets()
-    {
-        var post = MakePost("tariffs on China now");
-
-        var result = await _analyzer.AnalyzeAsync(post);
-
-        Assert.NotEmpty(result.AffectedAssets);
-    }
-
-    [Fact]
-    public async Task AnalyzeAsync_ReturnsAnalyzerVersion()
-    {
-        var post = MakePost("tariffs on China now");
-
-        var result = await _analyzer.AnalyzeAsync(post);
-
         Assert.False(string.IsNullOrWhiteSpace(result.AnalyzerVersion));
     }
 
     [Fact]
     public async Task AnalyzeAsync_CancellationRequested_ThrowsOperationCanceledException()
     {
-        var post = MakePost("some content");
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
         await Assert.ThrowsAsync<OperationCanceledException>(
-            () => _analyzer.AnalyzeAsync(post, cts.Token));
+            () => _analyzer.AnalyzeAsync(MakePost("some content"), cts.Token));
     }
 }

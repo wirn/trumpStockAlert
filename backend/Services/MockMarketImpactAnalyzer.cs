@@ -5,35 +5,36 @@ namespace TrumpStockAlert.Api.Services;
 
 public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
 {
-    private const string Version = "mock-keyword-v1";
+    private const string Version = "mock-keyword-v2";
 
     private static readonly string[] HighImpactKeywords =
     [
         "tariff",
         "tariffs",
         "china",
-        "federal reserve",
         "fed",
+        "federal reserve",
         "interest rate",
+        "interest rates",
         "inflation",
         "oil",
         "sanctions",
-        "trade war"
+        "war",
+        "crypto",
+        "bitcoin",
+        "tesla",
+        "nvidia"
     ];
 
     private static readonly string[] MediumImpactKeywords =
     [
+        "election",
         "economy",
-        "stock market",
-        "market",
-        "dollar",
-        "usd",
         "jobs",
-        "unemployment",
         "taxes",
         "regulation",
-        "crypto",
-        "bitcoin"
+        "trade",
+        "immigration"
     ];
 
     private static readonly string[] LowImpactKeywords =
@@ -42,10 +43,9 @@ public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
         "great crowd",
         "rally",
         "endorsement",
-        "birthday",
         "congratulations",
-        "interview",
-        "poll"
+        "campaign",
+        "social"
     ];
 
     private static readonly string[] NegativeDirectionKeywords =
@@ -53,19 +53,19 @@ public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
         "tariff",
         "tariffs",
         "sanctions",
-        "trade war",
+        "war",
+        "recession",
         "inflation",
-        "interest rate",
-        "oil"
+        "rate hikes"
     ];
 
     private static readonly string[] PositiveDirectionKeywords =
     [
-        "jobs",
         "tax cuts",
-        "deregulation",
-        "strong economy",
-        "stock market up"
+        "growth",
+        "jobs growth",
+        "lower rates",
+        "trade deal"
     ];
 
     public Task<MarketImpactAnalysisResult> AnalyzeAsync(
@@ -78,152 +78,191 @@ public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
         var highMatches = FindMatches(content, HighImpactKeywords);
         var mediumMatches = FindMatches(content, MediumImpactKeywords);
         var lowMatches = FindMatches(content, LowImpactKeywords);
-        var isHighImpact = highMatches.Count > 0;
-        var isMediumImpact = mediumMatches.Count > 0;
-        var isLowImpact = lowMatches.Count > 0;
+        var negativeMatches = FindMatches(content, NegativeDirectionKeywords);
+        var positiveMatches = FindMatches(content, PositiveDirectionKeywords);
 
-        var score = GetScore(isHighImpact, isMediumImpact, isLowImpact);
-        var direction = GetDirection(content, isLowImpact);
+        var score = GetMarketImpactScore(highMatches, mediumMatches, lowMatches);
+        var confidenceScore = GetConfidenceScore(highMatches, mediumMatches, lowMatches, positiveMatches, negativeMatches);
+        var direction = GetDirection(positiveMatches, negativeMatches);
         var affectedAssets = GetAffectedAssets(content);
-        var reasoning = GetReasoning(score, direction, highMatches, mediumMatches, lowMatches);
-        var confidence = GetConfidence(isHighImpact, isMediumImpact, isLowImpact);
-        var result = new MarketImpactAnalysisResult
+        var reasoning = GetReasoning(highMatches, mediumMatches, lowMatches, positiveMatches, negativeMatches, affectedAssets);
+        var rawAiResponse = JsonResponseText.NormalizeObjectJson(JsonSerializer.Serialize(new
+        {
+            marketImpactScore = score,
+            confidenceScore,
+            direction,
+            reasoning,
+            affectedAssets
+        }));
+
+        return Task.FromResult(new MarketImpactAnalysisResult
         {
             MarketImpactScore = score,
+            ConfidenceScore = confidenceScore,
             Direction = direction,
             Reasoning = reasoning,
             AffectedAssets = affectedAssets,
-            Confidence = confidence,
             AnalyzerVersion = Version,
-            RawAiResponse = JsonResponseText.NormalizeObjectJson(JsonSerializer.Serialize(new
-            {
-                marketImpactScore = score,
-                direction,
-                reasoning,
-                affectedAssets,
-                confidence
-            }))
-        };
-
-        return Task.FromResult(result);
+            RawAiResponse = rawAiResponse
+        });
     }
 
-    private static int GetScore(bool isHighImpact, bool isMediumImpact, bool isLowImpact)
+    private static int GetMarketImpactScore(
+        IReadOnlyCollection<string> highMatches,
+        IReadOnlyCollection<string> mediumMatches,
+        IReadOnlyCollection<string> lowMatches)
     {
-        if (isHighImpact)
-        {
-            return 85;
-        }
-
-        if (isMediumImpact)
-        {
-            return 68;
-        }
-
-        if (isLowImpact)
-        {
-            return 20;
-        }
-
-        return 40;
-    }
-
-    private static int GetDirection(string content, bool isLowImpact)
-    {
-        if (ContainsAny(content, NegativeDirectionKeywords))
-        {
-            return -35;
-        }
-
-        if (ContainsAny(content, PositiveDirectionKeywords))
-        {
-            return 25;
-        }
-
-        if (isLowImpact)
-        {
-            return 0;
-        }
-
-        return 0;
-    }
-
-    private static IReadOnlyList<string> GetAffectedAssets(string content)
-    {
-        if (ContainsAny(content, ["china", "tariff", "tariffs", "trade war"]))
-        {
-            return ["US equities", "China-related equities", "USD"];
-        }
-
-        if (ContainsAny(content, ["fed", "federal reserve", "interest rate", "inflation"]))
-        {
-            return ["US equities", "bonds", "USD"];
-        }
-
-        if (ContainsAny(content, ["oil", "sanctions"]))
-        {
-            return ["energy stocks", "oil", "US equities"];
-        }
-
-        if (ContainsAny(content, ["crypto", "bitcoin"]))
-        {
-            return ["crypto", "bitcoin-related equities"];
-        }
-
-        return ["US equities"];
-    }
-
-    private static string GetReasoning(
-        int score,
-        int direction,
-        IReadOnlyList<string> highMatches,
-        IReadOnlyList<string> mediumMatches,
-        IReadOnlyList<string> lowMatches)
-    {
-        var directionLabel = direction < 0 ? "negative" : direction > 0 ? "positive" : "neutral";
-
         if (highMatches.Count > 0)
         {
-            return $"Mock analysis found high-impact market keywords ({string.Join(", ", highMatches)}), producing a {directionLabel} score of {score}.";
+            return Math.Min(100, 78 + highMatches.Count * 4);
         }
 
         if (mediumMatches.Count > 0)
         {
-            return $"Mock analysis found market-related keywords ({string.Join(", ", mediumMatches)}), producing a {directionLabel} score of {score}.";
+            return Math.Min(69, 46 + mediumMatches.Count * 5);
         }
 
         if (lowMatches.Count > 0)
         {
-            return $"Mock analysis found mostly low-market-impact political or event keywords ({string.Join(", ", lowMatches)}), producing a neutral score of {score}.";
+            return Math.Min(39, 18 + lowMatches.Count * 4);
         }
 
-        return "Mock analysis found no strong market-impact keywords, so it returned a default uncertain score.";
+        return 25;
     }
 
-    private static int GetConfidence(bool isHighImpact, bool isMediumImpact, bool isLowImpact)
+    private static int GetConfidenceScore(
+        IReadOnlyCollection<string> highMatches,
+        IReadOnlyCollection<string> mediumMatches,
+        IReadOnlyCollection<string> lowMatches,
+        IReadOnlyCollection<string> positiveMatches,
+        IReadOnlyCollection<string> negativeMatches)
     {
-        if (isHighImpact)
+        var matchCount = highMatches.Count
+            + mediumMatches.Count
+            + lowMatches.Count
+            + positiveMatches.Count
+            + negativeMatches.Count;
+
+        if (matchCount == 0)
         {
-            return 75;
+            return 45;
         }
 
-        if (isMediumImpact)
+        return Math.Clamp(58 + matchCount * 6, 1, 92);
+    }
+
+    private static string GetDirection(
+        IReadOnlyCollection<string> positiveMatches,
+        IReadOnlyCollection<string> negativeMatches)
+    {
+        if (positiveMatches.Count > 0 && negativeMatches.Count > 0)
         {
-            return 65;
+            return "mixed";
         }
 
-        if (isLowImpact)
+        if (negativeMatches.Count > 0)
         {
-            return 70;
+            return "negative";
         }
 
-        return 50;
+        if (positiveMatches.Count > 0)
+        {
+            return "positive";
+        }
+
+        return "neutral";
+    }
+
+    private static IReadOnlyList<string> GetAffectedAssets(string content)
+    {
+        var assets = new List<string>();
+
+        AddAssetsWhenMatched(content, ["tariff", "tariffs", "china", "trade"], assets, ["SP500", "USD", "China equities"]);
+        AddAssetsWhenMatched(content, ["fed", "federal reserve", "interest rate", "interest rates", "inflation", "lower rates", "rate hikes"], assets, ["US equities", "Treasuries", "USD"]);
+        AddAssetsWhenMatched(content, ["oil"], assets, ["Oil", "Energy stocks"]);
+        AddAssetsWhenMatched(content, ["crypto", "bitcoin"], assets, ["Bitcoin", "Crypto equities"]);
+        AddAssetsWhenMatched(content, ["tesla"], assets, ["Tesla", "EV sector"]);
+        AddAssetsWhenMatched(content, ["nvidia"], assets, ["Nvidia", "Semiconductors"]);
+
+        return assets.Count > 0 ? assets : ["US equities"];
+    }
+
+    private static void AddAssetsWhenMatched(
+        string content,
+        IReadOnlyList<string> keywords,
+        ICollection<string> assets,
+        IReadOnlyList<string> assetsToAdd)
+    {
+        if (!ContainsAny(content, keywords))
+        {
+            return;
+        }
+
+        foreach (var asset in assetsToAdd)
+        {
+            if (!assets.Contains(asset))
+            {
+                assets.Add(asset);
+            }
+        }
+    }
+
+    private static string GetReasoning(
+        IReadOnlyCollection<string> highMatches,
+        IReadOnlyCollection<string> mediumMatches,
+        IReadOnlyCollection<string> lowMatches,
+        IReadOnlyCollection<string> positiveMatches,
+        IReadOnlyCollection<string> negativeMatches,
+        IReadOnlyList<string> affectedAssets)
+    {
+        var impactMatches = highMatches.Count > 0
+            ? highMatches
+            : mediumMatches.Count > 0
+                ? mediumMatches
+                : lowMatches;
+
+        if (impactMatches.Count == 0)
+        {
+            return "No strong market keywords were detected, so the mock analyzer returned a low-confidence neutral assessment.";
+        }
+
+        var impactPhrase = highMatches.Count > 0
+            ? "high-impact"
+            : mediumMatches.Count > 0
+                ? "market-related"
+                : "low-impact social or campaign";
+
+        var directionPhrase = GetDirectionPhrase(positiveMatches, negativeMatches);
+        return $"Mentions {string.Join(" and ", impactMatches.Take(3))}, a {impactPhrase} signal that could affect {string.Join(", ", affectedAssets.Take(3))}. {directionPhrase}";
+    }
+
+    private static string GetDirectionPhrase(
+        IReadOnlyCollection<string> positiveMatches,
+        IReadOnlyCollection<string> negativeMatches)
+    {
+        if (positiveMatches.Count > 0 && negativeMatches.Count > 0)
+        {
+            return "Positive and negative indicators are both present, so direction is mixed.";
+        }
+
+        if (negativeMatches.Count > 0)
+        {
+            return "Negative indicators suggest pressure on market sentiment.";
+        }
+
+        if (positiveMatches.Count > 0)
+        {
+            return "Positive indicators suggest supportive market sentiment.";
+        }
+
+        return "No clear directional indicators were detected, so direction is neutral.";
     }
 
     private static IReadOnlyList<string> FindMatches(string content, IReadOnlyList<string> keywords)
     {
         return keywords
             .Where(keyword => content.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 

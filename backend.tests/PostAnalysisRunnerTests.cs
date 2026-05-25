@@ -69,7 +69,7 @@ public sealed class PostAnalysisRunnerTests : IDisposable
         var analysis = await _db.PostAnalyses.SingleOrDefaultAsync(a => a.PostId == post.Id);
         Assert.NotNull(analysis);
         Assert.InRange(analysis.MarketImpactScore, 1, 100);
-        Assert.InRange(analysis.Direction, -50, 50);
+        Assert.Equal("negative", analysis.Direction);
         Assert.InRange(analysis.Confidence, 1, 100);
         Assert.False(string.IsNullOrWhiteSpace(analysis.Reasoning));
         Assert.False(string.IsNullOrWhiteSpace(analysis.AnalyzerVersion));

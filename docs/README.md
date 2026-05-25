@@ -1,3 +1,10 @@
+
+ssh wirn@192.168.50.14
+cd ~/projects/trumpStockAlert
+
+docker compose up -d --build api collector-scheduler
+
+
 # TrumpStockAlert
 
 Monitors Truth Social posts and analyzes their potential financial market impact using OpenAI.

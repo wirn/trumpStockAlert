@@ -213,8 +213,9 @@ public sealed class AnalysesControllerTests : IDisposable
         Assert.Equal(content, detail.PostContent);
         Assert.False(string.IsNullOrWhiteSpace(detail.PostUrl));
         Assert.InRange(detail.MarketImpactScore, 1, 100);
-        Assert.InRange(detail.Direction, -50, 50);
+        Assert.Equal("negative", detail.Direction);
         Assert.InRange(detail.Confidence, 1, 100);
+        Assert.InRange(detail.ConfidenceScore, 1, 100);
         Assert.False(string.IsNullOrWhiteSpace(detail.Reasoning));
         Assert.False(string.IsNullOrWhiteSpace(detail.AnalyzerVersion));
     }

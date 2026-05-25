@@ -18,7 +18,9 @@ public sealed class PostAnalysisDetailResponse
 
     public required int Confidence { get; init; }
 
-    public required int Direction { get; init; }
+    public required int ConfidenceScore { get; init; }
+
+    public required string Direction { get; init; }
 
     public required string Reasoning { get; init; }
 
@@ -38,7 +40,8 @@ public sealed class PostAnalysisDetailResponse
             PostCreatedAt = analysis.Post.CreatedAt,
             MarketImpactScore = analysis.MarketImpactScore,
             Confidence = analysis.Confidence,
-            Direction = analysis.Direction,
+            ConfidenceScore = analysis.Confidence,
+            Direction = DirectionLabel.Normalize(analysis.Direction),
             Reasoning = analysis.Reasoning,
             AffectedAssetsJson = analysis.AffectedAssetsJson,
             AnalyzedAt = analysis.AnalyzedAt,

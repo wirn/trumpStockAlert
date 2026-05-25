@@ -75,10 +75,10 @@ public sealed class PostAnalysisRunner(
                 {
                     PostId = post.Id,
                     MarketImpactScore = result.MarketImpactScore,
-                    Direction = result.Direction,
+                    Direction = NormalizeDirection(result.Direction),
                     Reasoning = result.Reasoning,
                     AffectedAssetsJson = JsonSerializer.Serialize(result.AffectedAssets),
-                    Confidence = result.Confidence,
+                    Confidence = result.ConfidenceScore,
                     AnalyzerVersion = result.AnalyzerVersion,
                     RawAiResponse = JsonResponseText.NormalizeObjectJson(result.RawAiResponse),
                     AnalyzedAt = now,
@@ -155,5 +155,17 @@ public sealed class PostAnalysisRunner(
             content,
             NoTextContentPlaceholder,
             StringComparison.Ordinal);
+    }
+
+    private static string NormalizeDirection(string direction)
+    {
+        return direction.Trim().ToLowerInvariant() switch
+        {
+            "positive" => "positive",
+            "negative" => "negative",
+            "mixed" => "mixed",
+            "neutral" => "neutral",
+            _ => "neutral"
+        };
     }
 }

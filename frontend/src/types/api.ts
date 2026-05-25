@@ -8,6 +8,7 @@ export interface PostAnalysis {
   reasoning: string;
   affectedAssetsJson?: string | null;
   confidence?: number | null;
+  confidenceScore?: number | null;
   analyzerVersion: string;
   rawAiResponse?: string | null;
   analyzedAt: string;

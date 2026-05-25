@@ -6,8 +6,8 @@
     - [x] 1e. Verifiera att Docker startar automatiskt efter reboot
     - [x] 1f. Skapa projektmapp på servern
     - [x] 1g. Klona TrumpStockAlert-repot till servern
-    - [x] 1h. Skapa .env-fil för lokala secrets
-    - [x] 1i. Lägg till .env i .gitignore
+    - [x] 1h. Skapa `.env`-fil för lokala secrets
+    - [x] 1i. Lägg till `.env` i `.gitignore`
 
 - [x] 2. Nätverk och åtkomst
     - [x] 2a. Sätt fast IP/DHCP reservation för servern i Asus-routern
@@ -20,24 +20,24 @@
     - [x] 2h. Undvik publik port forwarding i första versionen
 
 - [x] 3. Docker Compose-bas
-    - [x] 3a. Skapa docker-compose.yml
+    - [x] 3a. Skapa `docker-compose.yml`
     - [x] 3b. Lägg till backend/API-container
     - [x] 3c. Lägg till databas-container
     - [ ] 3d. Lägg till frontend-container
     - [x] 3e. Lägg till collector-container som manuell/one-shot job
-    - [ ] 3f. Lägg till analyzer-container
-    - [x] 3g. Lägg till restart: unless-stopped på långkörande tjänster
-    - [x] 3h. Verifiera att docker compose up -d startar allt
+    - [ ] 3f. Lägg till analyzer-container, om analys senare flyttas från API:t
+    - [x] 3g. Lägg till `restart: unless-stopped` på långkörande tjänster
+    - [x] 3h. Verifiera att `docker compose up -d` startar allt
     - [ ] 3i. Verifiera att containers startar efter reboot
 
 - [x] 4. Databas/datamodell
-    - [x] 4a. Välj databas för self-hosting, förslagsvis PostgreSQL
+    - [x] 4a. Välj databas för self-hosting: PostgreSQL
     - [x] 4b. Lägg till PostgreSQL i Docker Compose
     - [x] 4c. Skapa persistent databasvolym
     - [x] 4d. Byt EF Core-provider till PostgreSQL/Npgsql
-    - [x] 4e. Lägg till connection string i .env/config
+    - [x] 4e. Lägg till connection string i `.env`/config
     - [x] 4f. Skapa eller anpassa DbContext
-    - [x] 4g. Skapa entiteter för TruthPost, PostAnalysis, AlertNotification och FetcherRun
+    - [x] 4g. Skapa entiteter för `TruthPost`, `PostAnalysis`, `AlertNotification` och `FetcherRun`
     - [x] 4h. Skapa migration
     - [x] 4i. Uppdatera databasen
     - [x] 4j. Verifiera tabeller i databasen
@@ -59,11 +59,11 @@
     - [x] 6a. Välj collector-teknik: Python collector med Playwright som primär lösning
     - [x] 6b. Dockerisera collector
     - [x] 6c. Hämta senaste Truth Social-poster
-    - [x] 6d. Mappa hämtad data till TruthPost
+    - [x] 6d. Mappa hämtad data till `TruthPost`
     - [x] 6e. Spara poster i databasen via API
-    - [x] 6f. Lägg till ExternalId/TruthSocialId
+    - [x] 6f. Lägg till `ExternalId`/`TruthSocialId`
     - [x] 6g. Lägg till unik constraint för att undvika dubletter
-    - [x] 6h. Logga varje collectorkörning i FetcherRun
+    - [x] 6h. Logga varje collectorkörning i `FetcherRun`
     - [x] 6i. Verifiera sparade poster i databasen
     - [x] 6j. Behåll befintlig truthbrush-lösning som separat fallback-provider
     - [x] 6k. Skapa gemensamt collector-client-kontrakt via `fetch_latest_posts(max_posts, created_after)`
@@ -94,12 +94,12 @@
     - [x] 7c. Läsa API-nyckel från `.env`/config
     - [x] 7d. Testa manuell körning via curl
     - [x] 7e. Koppla frontend-knappen `Run Collector Test` till endpointen
-	
+
 - [x] 8. Scheduler
     - [x] 8a. Skapa `collector-scheduler`-container
     - [x] 8b. Kör Python Playwright collector automatiskt
     - [x] 8c. Kör ungefär var 10:e minut
-    - [x] 8d. Lägg till jitter, nu cirka 0–120 sekunder
+    - [x] 8d. Lägg till jitter, nu cirka 0-120 sekunder
     - [x] 8e. Skicka scheduler API-key
     - [x] 8f. Vänta på `/health` innan första körningen
     - [x] 8g. Lägg till backoff vid fel/blockering
@@ -107,28 +107,45 @@
     - [x] 8i. Verifiera att `DuplicateCount` används och inga dubletter sparas
     - [x] 8j. Säkerställ att endast `collector-scheduler` körs, inte separat `collector`-container
     - [x] 8k. Verifiera att endast en `fetcher_runs`-rad skapas per scheduler-körning
+    - [x] 8l. Kör analys efter lyckad collectorkörning
+    - [x] 8m. Logga analysens HTTP-status och resultat i scheduler-loggen
+    - [x] 8n. Låt analysfel loggas utan att krascha scheduler-loopen
 
-- [ ] 9. AI-analys
+- [~] 9. AI-analys
     - [x] 9a. Definiera analysmodell/JSON-format
-    - [ ] 9b. Bygg mock analyzer
-    - [ ] 9c. Analysera oanalyserade poster
-    - [ ] 9d. Spara analys i `post_analyses`
-    - [ ] 9e. Koppla riktig AI-klient
+    - [x] 9b. Bygg mock analyzer
+    - [x] 9c. Analysera oanalyserade poster
+    - [x] 9d. Spara analys i `post_analyses`
+    - [x] 9e. Lägg till `POST /api/analyses/run`
+    - [x] 9f. Skydda analys-endpoint med `X-TrumpStockAlert-Scheduler-Key`
+    - [x] 9g. Koppla scheduler så analys körs efter lyckad collectorkörning
+    - [x] 9h. Hoppa över analys för poster där `Content = "[No text content]"`
+    - [ ] 9i. Förbättra mock analyzer så den matchar slutligt AI-kontrakt bättre
+    - [ ] 9j. Lägg till provider-abstraktion, exempelvis `IAnalysisProvider`
+    - [ ] 9k. Lägg till config för `Analyzer__Provider=Mock|OpenAI`
+    - [ ] 9l. Bygg riktig OpenAI-analyzer bakom samma interface
+    - [ ] 9m. Lägg OpenAI API-key i `.env`/secrets, aldrig i Git
+    - [ ] 9n. Lägg till timeout, felhantering och loggning för AI-anrop
+    - [ ] 9o. Testa riktig AI-analys manuellt på ett fåtal poster
+    - [ ] 9p. Slå på riktig AI-analys i scheduler när manuell test är stabil
 
-- [ ] 10. Spara AI-analys
-    - [ ] 10a. Spara score, reasoning och affected assets
-    - [ ] 10b. Undvik att analysera samma post flera gånger
-    - [ ] 10c. Visa analys via API
-    - [ ] 10d. Visa analys i frontend/dashboard
+- [~] 10. Spara och visa AI-analys
+    - [x] 10a. Spara score, reasoning och affected assets
+    - [x] 10b. Undvik att analysera samma post flera gånger
+    - [x] 10c. Visa analys via API
+    - [x] 10d. Visa analys i frontend/dashboard
+    - [ ] 10e. Visa tydligt om analysen kommer från mock eller riktig AI, exempelvis `AnalyzerVersion`
+    - [ ] 10f. Visa/filtrera oanalyserade poster i dashboard
+    - [ ] 10g. Lägg till enklare historik/kontroll av AI-kostnad och antal analyser
 
 - [~] 11. E-post/alerts
     - [x] 11a. Skapa AlertSettings-konfiguration
     - [x] 11b. Skapa AlertNotification-entitet
     - [x] 11c. Skapa EF migration för AlertNotifications
     - [x] 11d. Skapa alert evaluator-service
-    - [x] 11e. Skapa IEmailSender-interface
-    - [x] 11f. Implementera LogOnlyEmailSender först
-    - [x] 11g. Skapa POST /api/alerts/run
+    - [x] 11e. Skapa `IEmailSender`-interface
+    - [x] 11f. Implementera `LogOnlyEmailSender` först
+    - [x] 11g. Skapa `POST /api/alerts/run`
     - [x] 11h. Lägg till threshold, exempelvis score >= 7
     - [x] 11i. Lägg till dedupe så samma analys inte skickas flera gånger
     - [ ] 11j. Testa alert-flöde lokalt
@@ -137,23 +154,30 @@
     - [ ] 11m. Verifiera riktigt e-postutskick
 
 - [~] 12. Frontend/dashboard
-    - [x] React/Vite dashboard finns
-    - [x] Dashboard hämtar posts och analyser från API
-    - [x] Admin-knappen `Run Collector Test` anropar `POST /api/collector/run`
-    - [x] Frontend använder `VITE_API_BASE_URL`
-    - [x] Frontend använder `VITE_SCHEDULER_API_KEY` för privat admin-dashboard
-    - [ ] Visa FetcherRun-historik i UI
-    - [ ] Dockerisera frontend för self-hosted körning
+    - [x] 12a. React/Vite dashboard finns
+    - [x] 12b. Dashboard hämtar posts och analyser från API
+    - [x] 12c. Admin-knappen `Run Collector Test` anropar `POST /api/collector/run`
+    - [x] 12d. Frontend använder `VITE_API_BASE_URL`
+    - [x] 12e. Frontend använder `VITE_SCHEDULER_API_KEY` för privat admin-dashboard
+    - [ ] 12f. Visa FetcherRun-historik i UI
+    - [ ] 12g. Dockerisera frontend för self-hosted körning
+
 - [ ] 13. Backup
+    - [ ] 13a. Bestäm backupstrategi för PostgreSQL-volymen
+    - [ ] 13b. Skapa manuell backup-rutin
+    - [ ] 13c. Testa restore lokalt
+    - [ ] 13d. Automatisera backup vid behov
+
 - [~] 14. Loggning + felhantering
-    - [x] FetcherRun-loggning i databas
-    - [x] Collector save-flow fortsätter trots enstaka fel
-    - [x] Backend loggar HTTP-status/response body vid collector-fel
-    - [x] Scheduler loggar timestamp, status, body, jitter och backoff
-    - [ ] Centralisera/rotera containerloggar
+    - [x] 14a. FetcherRun-loggning i databas
+    - [x] 14b. Collector save-flow fortsätter trots enstaka fel
+    - [x] 14c. Backend loggar HTTP-status/response body vid collector-fel
+    - [x] 14d. Scheduler loggar timestamp, status, body, jitter och backoff
+    - [x] 14e. Scheduler loggar analysresultat efter collector
+    - [ ] 14f. Centralisera/rotera containerloggar
 
 - [~] 15. Driftstabilitet
-    - [x] 15a. Lägg restart: unless-stopped på alla containers
+    - [x] 15a. Lägg `restart: unless-stopped` på alla långkörande containers
     - [x] 15b. Verifiera att Docker startar efter reboot
     - [ ] 15c. Verifiera att hela systemet startar efter reboot
     - [ ] 15d. Testa simulerat strömavbrott/restart
@@ -163,7 +187,7 @@
     - [ ] 15h. Dokumentera start/stopp/restart-kommandon
 
 - [~] 16. Säkerhet
-    - [x] 16a. Ha alla secrets i .env eller Docker secrets senare
+    - [x] 16a. Ha alla secrets i `.env` eller Docker secrets senare
     - [x] 16b. Lägg aldrig secrets i Git
     - [x] 16c. Använd starka lösenord/API-nycklar
     - [x] 16d. Skydda scheduler-endpoints med API-key
@@ -171,5 +195,11 @@
     - [x] 16f. Använd Tailscale som första remote access-lösning
     - [x] 16g. Håll Ubuntu uppdaterat
     - [ ] 16h. Håll Docker images uppdaterade
+    - [ ] 16i. Lägg till separat OpenAI API-key med låg budget/rate limit om möjligt
 
 - [ ] 17. Dokumentation
+    - [ ] 17a. Uppdatera README med self-hosted setup
+    - [ ] 17b. Dokumentera Docker-kommandon
+    - [ ] 17c. Dokumentera scheduler-flödet
+    - [ ] 17d. Dokumentera AI-provider-val: mock vs OpenAI
+    - [ ] 17e. Dokumentera felsökning för collector, scheduler och AI-analys

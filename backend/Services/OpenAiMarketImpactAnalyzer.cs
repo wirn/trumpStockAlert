@@ -74,10 +74,10 @@ public sealed class OpenAiMarketImpactAnalyzer(
             return new MarketImpactAnalysisResult
             {
                 MarketImpactScore = parsed.MarketImpactScore,
-                Direction = parsed.Direction,
+                ConfidenceScore = parsed.Confidence,
+                Direction = ToDirectionLabel(parsed.Direction),
                 Reasoning = parsed.Reasoning,
                 AffectedAssets = parsed.AffectedAssets,
-                Confidence = parsed.Confidence,
                 AnalyzerVersion = $"openai-{model}-v1",
                 RawAiResponse = normalizedRawJson
             };
@@ -122,6 +122,16 @@ public sealed class OpenAiMarketImpactAnalyzer(
                 post.ExternalId);
             throw;
         }
+    }
+
+    private static string ToDirectionLabel(int direction)
+    {
+        return direction switch
+        {
+            > 0 => "positive",
+            < 0 => "negative",
+            _ => "neutral"
+        };
     }
 
     private async Task<ChatCompletion> CompleteChatWithRetryAsync(
