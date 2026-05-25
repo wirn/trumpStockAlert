@@ -61,9 +61,9 @@ def test_duplicate_filtering(tmp_path: Path) -> None:
         post_store=post_store,
     )
 
-    new_posts = service.run(max_posts=10)
+    summary = service.run(max_posts=10)
 
-    assert [post.externalId for post in new_posts] == ["2"]
+    assert [post.externalId for post in summary.new_posts] == ["2"]
     assert [post["externalId"] for post in post_store.load_posts()] == ["1", "2"]
 
 
@@ -88,12 +88,12 @@ def test_filters_out_posts_older_than_created_after(tmp_path: Path) -> None:
         post_store=post_store,
     )
 
-    new_posts = service.run(
+    summary = service.run(
         max_posts=10,
         created_after=datetime(2026, 4, 26, 11, 55, tzinfo=UTC),
     )
 
-    assert [post.externalId for post in new_posts] == ["2"]
+    assert [post.externalId for post in summary.new_posts] == ["2"]
     assert [post["externalId"] for post in post_store.load_posts()] == ["2"]
 
 
@@ -124,8 +124,64 @@ def test_test_mode_still_persists_fetched_posts(caplog: Any) -> None:
     )
 
     with caplog.at_level(logging.INFO):
-        new_posts = service.run(max_posts=1)
+        summary = service.run(max_posts=1)
 
     assert [saved.externalId for saved in post_store.saved_inputs] == ["1"]
-    assert [saved.externalId for saved in new_posts] == ["1"]
+    assert [saved.externalId for saved in summary.new_posts] == ["1"]
     assert "Collector save summary. Saved: 1. Skipped: 2. Failed: 1." in caplog.text
+
+
+def test_run_summary_counts_are_correct() -> None:
+    post = PostNormalizer("realDonaldTrump").normalize(
+        {"id": "1", "content": "New", "created_at": "2026-04-26T12:00:00.000Z"}
+    )
+    post_store = FakeApiStore(
+        SavePostsResult(saved_posts=[post], already_existing_count=3, failed_count=2)
+    )
+    service = CollectorService(
+        client=FakeClient(
+            [
+                {"id": "1", "content": "New", "created_at": "2026-04-26T12:00:00.000Z"},
+                {"id": "2", "content": "Old", "created_at": "2026-04-26T11:00:00.000Z"},
+                {"id": "3", "content": "Dup", "created_at": "2026-04-26T10:00:00.000Z"},
+                {"id": "4", "content": "Fail", "created_at": "2026-04-26T09:00:00.000Z"},
+                {"id": "5", "content": "Fail2", "created_at": "2026-04-26T08:00:00.000Z"},
+            ]
+        ),
+        normalizer=PostNormalizer("realDonaldTrump"),
+        post_store=post_store,
+    )
+
+    summary = service.run(max_posts=5)
+
+    assert summary.fetched_count == 5
+    assert summary.saved_count == 1
+    assert summary.already_existing_count == 3
+    assert summary.failed_count == 2
+    assert summary.success is False
+    assert summary.started_at <= summary.finished_at
+
+
+def test_run_summary_success_when_no_failures() -> None:
+    post_store = FakeApiStore(
+        SavePostsResult(saved_posts=[], already_existing_count=2, failed_count=0)
+    )
+    service = CollectorService(
+        client=FakeClient(
+            [
+                {"id": "1", "content": "A", "created_at": "2026-04-26T12:00:00.000Z"},
+                {"id": "2", "content": "B", "created_at": "2026-04-26T11:00:00.000Z"},
+            ]
+        ),
+        normalizer=PostNormalizer("realDonaldTrump"),
+        post_store=post_store,
+    )
+
+    summary = service.run(max_posts=2)
+
+    assert summary.fetched_count == 2
+    assert summary.saved_count == 0
+    assert summary.already_existing_count == 2
+    assert summary.failed_count == 0
+    assert summary.success is True
+    assert summary.message == "Collector completed."

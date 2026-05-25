@@ -17,6 +17,7 @@ class CollectorConfig:
     truth_posts_file_path: Path = Path("./data/truth-posts.json")
     output_mode: str = "console"
     client_mode: str = "truthbrush"
+    scheduler_api_key: str = ""
 
     @classmethod
     def from_env(cls) -> "CollectorConfig":
@@ -74,4 +75,5 @@ class CollectorConfig:
             ),
             output_mode=output_mode,
             client_mode=client_mode,
+            scheduler_api_key=os.getenv("SCHEDULER_API_KEY", "").strip(),
         )

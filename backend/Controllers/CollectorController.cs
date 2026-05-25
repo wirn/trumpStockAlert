@@ -99,6 +99,67 @@ public sealed class CollectorController(
     }
 
     /// <summary>
+    /// Records the result of an external (Python/Playwright) collector run.
+    /// </summary>
+    /// <remarks>
+    /// Called by the Python collector after each run to write a row to fetcher_runs.
+    /// Requires the <c>X-TrumpStockAlert-Scheduler-Key</c> request header.
+    /// </remarks>
+    [HttpPost("report-run")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ReportCollectorRun(
+        [FromHeader(Name = SchedulerKeyHeaderName)] string? schedulerKey,
+        [FromBody] ReportCollectorRunRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!AuthorizeCollectorRun(schedulerKey))
+        {
+            return Unauthorized();
+        }
+
+        var result = new CollectorRunResult
+        {
+            Success = request.Success,
+            StartedAt = request.StartedAt,
+            FinishedAt = request.FinishedAt,
+            DurationMs = (long)(request.FinishedAt - request.StartedAt).TotalMilliseconds,
+            Message = string.IsNullOrWhiteSpace(request.Message) ? "External collector run." : request.Message,
+            FetchedPosts = request.FetchedCount,
+            SavedPosts = request.InsertedCount,
+            SkippedPosts = request.DuplicateCount,
+            FailedPosts = request.ErrorCount
+        };
+
+        try
+        {
+            await fetcherRunService.LogRunAsync(request.TriggerType, result, cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(
+                exception,
+                "Failed to persist FetcherRun for external collector run. TriggerType: {TriggerType}.",
+                request.TriggerType);
+            return Problem(
+                title: "Failed to persist collector run.",
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
+
+        logger.LogInformation(
+            "External collector run reported. TriggerType: {TriggerType}. Success: {Success}. FetchedCount: {FetchedCount}. InsertedCount: {InsertedCount}. DuplicateCount: {DuplicateCount}. ErrorCount: {ErrorCount}.",
+            request.TriggerType,
+            request.Success,
+            request.FetchedCount,
+            request.InsertedCount,
+            request.DuplicateCount,
+            request.ErrorCount);
+
+        return Ok();
+    }
+
+    /// <summary>
     /// Runs the collector in test mode.
     /// </summary>
     /// <remarks>

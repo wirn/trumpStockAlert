@@ -10,6 +10,7 @@ from typing import Any
 from collector.models import NormalizedPost
 from collector.normalizer import PostNormalizer
 from collector.post_store_result import SavePostsResult
+from collector.run_summary import CollectorRunSummary
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,8 @@ class CollectorService:
 
     def run(
         self, max_posts: int, created_after: datetime | None = None
-    ) -> list[NormalizedPost]:
+    ) -> CollectorRunSummary:
+        started_at = datetime.now(UTC)
         logger.info(
             "Collector starting in %s mode.",
             "test" if self.test_mode else "normal",
@@ -66,7 +68,17 @@ class CollectorService:
 
         self._output(new_posts)
 
-        return new_posts
+        finished_at = datetime.now(UTC)
+
+        return CollectorRunSummary(
+            new_posts=new_posts,
+            fetched_count=len(raw_posts),
+            saved_count=save_result.saved_count,
+            already_existing_count=save_result.already_existing_count,
+            failed_count=save_result.failed_count,
+            started_at=started_at,
+            finished_at=finished_at,
+        )
 
     def _save_posts(self, posts: list[NormalizedPost]) -> SavePostsResult:
         if hasattr(self.post_store, "save_posts"):

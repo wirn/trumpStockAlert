@@ -46,6 +46,7 @@ services:
       MAX_POSTS: ${COLLECTOR_MAX_POSTS:-10}
       LOOKBACK_MINUTES: ${COLLECTOR_LOOKBACK_MINUTES:-5}
       OUTPUT_MODE: console
+      SCHEDULER_API_KEY: ${SCHEDULER_API_KEY:-}
     command: ["python", "-m", "collector.main", "--skip-lookback"]
 
   collector-scheduler:
