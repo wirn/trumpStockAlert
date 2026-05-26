@@ -8,20 +8,29 @@ React + TypeScript + Vite dashboard for viewing saved Truth Social posts and the
 npm install
 ```
 
-Create a local environment file if you want to override the default backend URL or use the manual collector trigger:
+Create a local environment file:
 
 ```powershell
-Copy-Item .env.example .env.local
+Copy-Item .env.local.example .env.local
 ```
 
-Expected local API:
+Expected local development setup:
 
 ```text
-VITE_API_BASE_URL=http://localhost:5044
+Frontend: http://localhost:5173
+API:      http://localhost:8080
+```
+
+Local `.env.local`:
+
+```text
+VITE_API_BASE_URL=http://localhost:8080
 VITE_SCHEDULER_API_KEY=<same value as SCHEDULER_API_KEY for the backend>
 ```
 
-`VITE_SCHEDULER_API_KEY` is sent to `POST /api/collector/run` as `X-TrumpStockAlert-Scheduler-Key` when using the admin collector button. This is acceptable for the private Tailscale dashboard; do not expose this frontend publicly without moving the collector trigger behind real authentication.
+All API calls use `VITE_API_BASE_URL`. The value may include or omit a trailing slash.
+
+`VITE_SCHEDULER_API_KEY` is sent to protected admin endpoints as `X-TrumpStockAlert-Scheduler-Key` when using manual admin actions such as collector and analysis runs. This is acceptable only for a private/protected dashboard, for example behind Tailscale. Do not expose this frontend publicly with `VITE_SCHEDULER_API_KEY`; move admin actions behind real server-side authentication or a protected backend-for-frontend first.
 
 ## Run
 
@@ -48,4 +57,14 @@ npm run build
 3. Open `http://localhost:5173`.
 4. Use `Refresh data` to reload posts and analyses.
 5. Use `Run Collector Test` to call `POST /api/collector/run`, then refresh saved posts automatically.
-6. Use `Run analysis` to call `POST /api/analysis/run`, then refresh the dashboard automatically.
+6. Use `Run analysis` to call `POST /api/analyses/run`, then refresh the dashboard automatically.
+
+## Azure Deployment
+
+Set `VITE_API_BASE_URL` during the frontend build/deploy for the target environment:
+
+```text
+VITE_API_BASE_URL=https://<your-api-app>.azurewebsites.net
+```
+
+For a public Azure frontend, leave `VITE_SCHEDULER_API_KEY` unset and hide/avoid protected admin actions until they are moved behind real authentication. Vite variables are client-side configuration, not secrets.

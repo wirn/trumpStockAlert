@@ -125,21 +125,27 @@
     - [x] 9k. Uppdatera `POST /api/analyses/run` så svaret innehåller `SkippedAlreadyAnalyzedCount` och `SkippedNoTextContentCount`
     - [x] 9l. Behåll bakåtkompatibla fält i analyskörningens response: `AnalyzedCount`, `SkippedCount`, `ErrorCount` och `Message`
     - [x] 9m. Verifiera att scheduler fortfarande bara kör analys efter lyckad collectorkörning
-    - [ ] 9n. Förbättra mock analyzer så den matchar slutligt AI-kontrakt bättre
-    - [ ] 9o. Lägg till provider-abstraktion, exempelvis `IAnalysisProvider`
-    - [ ] 9p. Lägg till config för `Analyzer__Provider=Mock|OpenAI`
-    - [ ] 9q. Bygg riktig OpenAI-analyzer bakom samma interface
-    - [ ] 9r. Lägg OpenAI API-key i `.env`/secrets, aldrig i Git
-    - [ ] 9s. Lägg till timeout, felhantering och loggning för AI-anrop
-    - [ ] 9t. Testa riktig AI-analys manuellt på ett fåtal poster
-    - [ ] 9u. Slå på riktig AI-analys i scheduler när manuell test är stabil
+	- [x] 9n. Förbättra mock analyzer så den matchar slutligt AI-kontrakt bättre
+	- [x] 9o. Lägg till provider-abstraktion, exempelvis `IAnalysisProvider`
+	- [x] 9p. Lägg till config för `Analyzer__Provider=Mock|OpenAI`
+	- [x] 9q. Bygg riktig OpenAI-analyzer bakom samma interface
+	- [x] 9r. Lägg OpenAI API-key i `.env`/secrets, aldrig i Git
+	- [x] 9s. Lägg till timeout, felhantering och loggning för AI-anrop
+	- [x] 9t. Testa riktig AI-analys manuellt på ett fåtal poster
+	- [x] 9u. Byt analyskontrakt till numerisk `direction` (-50..50)
+	- [x] 9v. Uppdatera prompt så AI returnerar numerisk direction
+	- [x] 9w. Uppdatera parser med range-validering för direction
+	- [x] 9x. Uppdatera backend-modell/DTO till int Direction
+	- [x] 9y. Skapa DB-migration för DirectionAsNumericContract
+	- [x] 9z. Konvertera legacy-värden positive/negative/neutral/mixed
+	- [x] 9å. Uppdatera frontend för numerisk direction
 
 - [~] 10. Spara och visa AI-analys
     - [x] 10a. Spara score, reasoning och affected assets
     - [x] 10b. Undvik att analysera samma post flera gånger
     - [x] 10c. Visa analys via API
     - [x] 10d. Visa analys i frontend/dashboard
-    - [ ] 10e. Visa tydligt om analysen kommer från mock eller riktig AI, exempelvis `AnalyzerVersion`
+	- [x] 10e. Visa tydligt om analysen kommer från mock eller riktig AI, exempelvis `AnalyzerVersion`
     - [ ] 10f. Visa/filtrera oanalyserade poster i dashboard
     - [ ] 10g. Lägg till enklare historik/kontroll av AI-kostnad och antal analyser
 

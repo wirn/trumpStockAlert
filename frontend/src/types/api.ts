@@ -45,15 +45,15 @@ export interface Alert {
 }
 
 export interface AnalysisRunResult {
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
   analyzedCount: number;
   skippedCount: number;
-  skippedAlreadyAnalyzedCount?: number;
-  skippedNoTextContentCount?: number;
-  failedCount: number;
-  errorCount?: number;
+  skippedAlreadyAnalyzedCount: number;
+  skippedNoTextContentCount: number;
+  errorCount: number;
   message: string;
-  analyzedPostIds: number[];
-  failedPostIds: number[];
 }
 
 export interface CollectorRunResult {

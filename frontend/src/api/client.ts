@@ -1,7 +1,7 @@
 import type { AnalysisRunResult, CollectorRunResult, FetcherRun, PostAnalysis, TruthPost } from '../types/api';
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
-const apiBaseUrl = (configuredBaseUrl?.trim() || 'http://localhost:5044').replace(/\/$/, '');
+const apiBaseUrl = normalizeBaseUrl(configuredBaseUrl);
 const schedulerApiKey = import.meta.env.VITE_SCHEDULER_API_KEY as string | undefined;
 
 export class ApiRequestError extends Error {
@@ -21,6 +21,10 @@ export class ApiRequestError extends Error {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  if (!apiBaseUrl) {
+    throw new ApiRequestError('VITE_API_BASE_URL is not configured. Set it to the backend API base URL, for example http://localhost:8080.');
+  }
+
   let response: Response;
 
   try {
@@ -56,7 +60,17 @@ export async function getAnalyses(limit = 500): Promise<PostAnalysis[]> {
 }
 
 export async function runAnalysis(): Promise<AnalysisRunResult> {
-  return requestJson<AnalysisRunResult>('/api/analysis/run', { method: 'POST' });
+  const apiKey = schedulerApiKey?.trim();
+  if (!apiKey) {
+    throw new ApiRequestError('VITE_SCHEDULER_API_KEY is not configured for the manual analysis trigger.');
+  }
+
+  return requestJson<AnalysisRunResult>('/api/analyses/run', {
+    method: 'POST',
+    headers: {
+      'X-TrumpStockAlert-Scheduler-Key': apiKey,
+    },
+  });
 }
 
 export async function runCollector(): Promise<CollectorRunResult> {
@@ -78,5 +92,9 @@ export async function getLatestFetcherRuns(): Promise<FetcherRun[]> {
 }
 
 export function getApiBaseUrl(): string {
-  return apiBaseUrl;
+  return apiBaseUrl || 'Not configured';
+}
+
+function normalizeBaseUrl(value?: string): string {
+  return value?.trim().replace(/\/+$/, '') ?? '';
 }

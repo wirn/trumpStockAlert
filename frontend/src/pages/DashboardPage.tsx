@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import { getAnalyses, getTruthPosts, runAnalysis, runCollector } from '../api/client';
+import { getAnalyzerProvider, getDirectionLabel, getDirectionTone, hasNoTextContent } from '../types/analysis';
 import type { AnalysisRunResult, CollectorRunResult, PostAnalysis, TruthPost } from '../types/api';
 
 type Filter = 'all' | 'high' | 'not-analyzed' | 'negative' | 'positive' | 'uncertain-neutral';
@@ -104,7 +105,7 @@ function DashboardPage() {
       </section>
 
       {error && <div className="notice error">{error}</div>}
-      {runResult && <div className="notice success">{runResult.message}</div>}
+      {runResult && <AnalysisRunOutput result={runResult} />}
       {collectorResult && <CollectorRunOutput result={collectorResult} />}
 
       <section className="stats-grid" aria-label="Dashboard summary">
@@ -169,6 +170,37 @@ function CollectorRunOutput({ result }: { result: CollectorRunResult }) {
         <div>
           <dt>Duplicates</dt>
           <dd>{result.duplicateCount}</dd>
+        </div>
+        <div>
+          <dt>Errors</dt>
+          <dd>{result.errorCount}</dd>
+        </div>
+        <div>
+          <dt>Duration</dt>
+          <dd>{result.durationMs}ms</dd>
+        </div>
+      </dl>
+      <p>{result.message}</p>
+    </details>
+  );
+}
+
+function AnalysisRunOutput({ result }: { result: AnalysisRunResult }) {
+  return (
+    <details className={result.errorCount > 0 ? 'collector-output error-output' : 'collector-output success-output'} open>
+      <summary>Analysis completed</summary>
+      <dl className="collector-meta">
+        <div>
+          <dt>Analyzed</dt>
+          <dd>{result.analyzedCount}</dd>
+        </div>
+        <div>
+          <dt>Already analyzed</dt>
+          <dd>{result.skippedAlreadyAnalyzedCount}</dd>
+        </div>
+        <div>
+          <dt>No text skipped</dt>
+          <dd>{result.skippedNoTextContentCount}</dd>
         </div>
         <div>
           <dt>Errors</dt>
@@ -264,6 +296,7 @@ function PostCard({ post }: { post: TruthPost }) {
   const affectedAssets = parseAffectedAssets(analysis?.affectedAssetsJson);
   const direction = getDirectionTone(analysis?.direction);
   const directionLabel = getDirectionLabel(analysis?.direction);
+  const noTextContent = hasNoTextContent(post.content);
   const score = analysis?.marketImpactScore ?? 0;
 
   return (
@@ -290,7 +323,7 @@ function PostCard({ post }: { post: TruthPost }) {
         ) : (
           <div className="analysis-panel muted-panel">
             <span className="direction pending">Not analyzed</span>
-            <span className="asset">Run analysis to score this post</span>
+            <span className="asset">{noTextContent ? 'Skipped: no text content' : 'Waiting for next analysis run'}</span>
           </div>
         )}
       </div>
@@ -310,6 +343,7 @@ function PostCard({ post }: { post: TruthPost }) {
         </p>
         <div className="post-footer-actions">
           {analysis && <span className="analyzer-badge">Analyzer: {analysis.analyzerVersion}</span>}
+          {analysis && <span className="analyzer-badge">Provider: {getAnalyzerProvider(analysis.analyzerVersion)}</span>}
           {post.imageUrls[0] && (
             <a href={post.imageUrls[0]} target="_blank" rel="noreferrer" className="media-link">
               Image
@@ -334,20 +368,6 @@ function parseAffectedAssets(raw?: string | null): string[] {
   }
 
   return ['US equities'];
-}
-
-function getDirectionTone(direction?: number): 'positive' | 'negative' | 'neutral' | 'pending' {
-  if (direction === undefined) return 'pending';
-  if (direction > 0) return 'positive';
-  if (direction < 0) return 'negative';
-  return 'neutral';
-}
-
-function getDirectionLabel(direction?: number): string {
-  if (direction === undefined) return 'Pending direction';
-  if (direction > 0) return 'Positive direction';
-  if (direction < 0) return 'Negative direction';
-  return 'Neutral direction';
 }
 
 function formatDate(value: string): string {

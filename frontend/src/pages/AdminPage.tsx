@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getApiBaseUrl, getTruthPosts, runAnalysis, runCollector } from '../api/client';
+import { getAnalyzerProvider, getDirectionLabel, getDirectionTone, hasNoTextContent } from '../types/analysis';
 import type { AnalysisRunResult, CollectorRunResult, TruthPost } from '../types/api';
 
 type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -121,7 +122,7 @@ function AdminPage() {
           />
           <AdminCard
             icon="AI"
-            code="POST /api/analysis/run"
+            code="POST /api/analyses/run"
             title="Run Analysis Manually"
             description="Trigger analysis for pending posts, then refresh the post list automatically."
             action={isAnalysisRunning ? 'Running...' : 'Run analysis'}
@@ -147,7 +148,7 @@ function AdminPage() {
               <Metric label="Posts loaded" value={posts.length.toString()} />
               <Metric label="Analyzed posts" value={analyzedPosts.toString()} />
               <Metric label="Collector inserted" value={formatCount(collectorResult?.insertedCount)} />
-              <Metric label="Failed analysis" value={(analysisResult?.failedCount ?? 0).toString()} tone={analysisResult?.failedCount ? 'danger' : undefined} />
+              <Metric label="Analysis errors" value={(analysisResult?.errorCount ?? 0).toString()} tone={analysisResult?.errorCount ? 'danger' : undefined} />
               <Metric label="Latest analysis" value={latestAnalyzedAt ? formatDate(latestAnalyzedAt) : 'Not yet'} />
             </div>
           </section>
@@ -157,7 +158,7 @@ function AdminPage() {
             <dl className="environment-list">
               <div>
                 <dt>Analysis endpoint</dt>
-                <dd>POST /api/analysis/run</dd>
+                <dd>POST /api/analyses/run</dd>
               </div>
               <div>
                 <dt>API Base URL</dt>
@@ -234,7 +235,7 @@ function AdminPage() {
             <strong id="analysis-response-heading">Analysis API Response</strong>
             <span>{analysisStatus}</span>
           </div>
-          <pre className="api-response">{JSON.stringify(analysisResult, null, 2)}</pre>
+          <AnalysisResultSummary result={analysisResult} />
         </section>
       )}
 
@@ -330,9 +331,45 @@ function StatusNotice({ status, message }: { status: AsyncStatus; message: strin
   );
 }
 
+function AnalysisResultSummary({ result }: { result: AnalysisRunResult }) {
+  return (
+    <div className="collector-result">
+      <dl className="admin-post-meta">
+        <div>
+          <dt>Analyzed</dt>
+          <dd>{formatCount(result.analyzedCount)}</dd>
+        </div>
+        <div>
+          <dt>Already analyzed</dt>
+          <dd>{formatCount(result.skippedAlreadyAnalyzedCount)}</dd>
+        </div>
+        <div>
+          <dt>No text skipped</dt>
+          <dd>{formatCount(result.skippedNoTextContentCount)}</dd>
+        </div>
+        <div>
+          <dt>Total skipped</dt>
+          <dd>{formatCount(result.skippedCount)}</dd>
+        </div>
+        <div>
+          <dt>Errors</dt>
+          <dd>{formatCount(result.errorCount)}</dd>
+        </div>
+        <div>
+          <dt>Duration</dt>
+          <dd>{result.durationMs}ms</dd>
+        </div>
+      </dl>
+      <p>{result.message}</p>
+    </div>
+  );
+}
+
 function AdminPostCard({ post }: { post: TruthPost }) {
   const analysis = post.analysis;
   const score = analysis?.marketImpactScore;
+  const directionTone = getDirectionTone(analysis?.direction);
+  const noTextContent = hasNoTextContent(post.content);
 
   return (
     <article className="admin-post-card">
@@ -341,7 +378,9 @@ function AdminPostCard({ post }: { post: TruthPost }) {
           <h3>Post {formatValue(post.id)}</h3>
           <p>{formatValue(post.externalId)}</p>
         </div>
-        <span className="direction pending">{analysis ? 'Analyzed' : 'Not analyzed'}</span>
+        <span className={analysis ? `direction ${directionTone}` : 'direction pending'}>
+          {analysis ? getDirectionLabel(analysis.direction) : 'Not analyzed'}
+        </span>
       </header>
 
       <dl className="admin-post-meta">
@@ -357,13 +396,22 @@ function AdminPostCard({ post }: { post: TruthPost }) {
           <dt>Market impact score</dt>
           <dd>{score === null || score === undefined ? 'Not scored' : `${score} / 100`}</dd>
         </div>
+        <div>
+          <dt>Direction</dt>
+          <dd>{analysis ? `${analysis.direction} (${getDirectionLabel(analysis.direction)})` : 'n/a'}</dd>
+        </div>
+        <div>
+          <dt>Analyzer</dt>
+          <dd>{analysis ? `${getAnalyzerProvider(analysis.analyzerVersion)} (${analysis.analyzerVersion})` : 'n/a'}</dd>
+        </div>
       </dl>
 
       <p className="admin-post-content">{post.content || getRawText(post.raw) || 'No content returned.'}</p>
 
       <footer>
         <p>
-          <span>Reasoning:</span> {analysis?.reasoning || 'No analysis reasoning available.'}
+          <span>Reasoning:</span>{' '}
+          {analysis?.reasoning || (noTextContent ? 'Skipped because the post has no text content.' : 'No analysis reasoning available.')}
         </p>
       </footer>
     </article>
