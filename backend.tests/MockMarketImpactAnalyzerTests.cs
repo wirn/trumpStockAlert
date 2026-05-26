@@ -40,16 +40,16 @@ public sealed class MockMarketImpactAnalyzerTests
         var result = await _analyzer.AnalyzeAsync(MakePost(content));
 
         Assert.InRange(result.MarketImpactScore, 1, 39);
-        Assert.Equal("neutral", result.Direction);
+        Assert.Equal(0, result.Direction);
     }
 
     [Fact]
-    public async Task AnalyzeAsync_MixedDirectionKeywords_ReturnsMixedDirection()
+    public async Task AnalyzeAsync_MixedDirectionKeywords_ReturnsNeutralDirection()
     {
         var result = await _analyzer.AnalyzeAsync(
             MakePost("Tariffs are coming, but a trade deal and tax cuts will support growth."));
 
-        Assert.Equal("mixed", result.Direction);
+        Assert.Equal(0, result.Direction);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class MockMarketImpactAnalyzerTests
         Assert.True(root.TryGetProperty("direction", out var direction));
         Assert.True(root.TryGetProperty("reasoning", out _));
         Assert.True(root.TryGetProperty("affectedAssets", out _));
-        Assert.Equal("negative", direction.GetString());
+        Assert.Equal(-25, direction.GetInt32());
     }
 
     [Fact]

@@ -1,10 +1,8 @@
-export type Direction = 'Positive' | 'Negative' | 'Neutral' | 'Uncertain' | string;
-
 export interface PostAnalysis {
   id: number;
   postId: number;
   marketImpactScore: number;
-  direction: Direction;
+  direction: number;
   reasoning: string;
   affectedAssetsJson?: string | null;
   confidence?: number | null;

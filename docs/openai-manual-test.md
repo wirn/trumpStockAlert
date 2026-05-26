@@ -99,7 +99,7 @@ LIMIT 10;
 '
 ```
 
-For a real OpenAI result, `AnalyzerVersion` should start with `openai-`, and `Direction` should be one of `positive`, `negative`, `neutral`, or `mixed`.
+For a real OpenAI result, `AnalyzerVersion` should start with `openai-`, and `Direction` should be an integer from `-50` to `50`.
 
 ## 6. Verify skip rules still hold
 

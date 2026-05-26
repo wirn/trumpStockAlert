@@ -221,13 +221,13 @@ function filterAndSortPosts(posts: TruthPost[], filter: Filter): TruthPost[] {
   return posts
     .filter((post) => {
       const analysis = post.analysis;
-      const direction = analysis?.direction.toLowerCase();
+      const direction = getDirectionTone(analysis?.direction);
 
       if (filter === 'high') return (analysis?.marketImpactScore ?? 0) >= 70;
       if (filter === 'not-analyzed') return !analysis;
       if (filter === 'negative') return direction === 'negative';
       if (filter === 'positive') return direction === 'positive';
-      if (filter === 'uncertain-neutral') return direction === 'uncertain' || direction === 'neutral';
+      if (filter === 'uncertain-neutral') return direction === 'neutral';
       return true;
     })
     .sort((left, right) => {
@@ -262,7 +262,8 @@ function StatCard({
 function PostCard({ post }: { post: TruthPost }) {
   const analysis = post.analysis;
   const affectedAssets = parseAffectedAssets(analysis?.affectedAssetsJson);
-  const direction = analysis?.direction.toLowerCase() ?? 'pending';
+  const direction = getDirectionTone(analysis?.direction);
+  const directionLabel = getDirectionLabel(analysis?.direction);
   const score = analysis?.marketImpactScore ?? 0;
 
   return (
@@ -279,7 +280,7 @@ function PostCard({ post }: { post: TruthPost }) {
         {analysis ? (
           <div className="analysis-panel">
             <div className="asset-row">
-              <span className={`direction ${direction}`}>{analysis.direction} direction</span>
+              <span className={`direction ${direction}`}>{directionLabel} ({analysis.direction})</span>
               <span className="asset confidence">Confidence: {analysis.confidence ?? 'n/a'}%</span>
               {affectedAssets.map((asset) => (
                 <span className="asset" key={asset}>{asset}</span>
@@ -333,6 +334,20 @@ function parseAffectedAssets(raw?: string | null): string[] {
   }
 
   return ['US equities'];
+}
+
+function getDirectionTone(direction?: number): 'positive' | 'negative' | 'neutral' | 'pending' {
+  if (direction === undefined) return 'pending';
+  if (direction > 0) return 'positive';
+  if (direction < 0) return 'negative';
+  return 'neutral';
+}
+
+function getDirectionLabel(direction?: number): string {
+  if (direction === undefined) return 'Pending direction';
+  if (direction > 0) return 'Positive direction';
+  if (direction < 0) return 'Negative direction';
+  return 'Neutral direction';
 }
 
 function formatDate(value: string): string {

@@ -80,7 +80,7 @@ public sealed class PostAnalysisRunner(
                 {
                     PostId = post.Id,
                     MarketImpactScore = result.MarketImpactScore,
-                    Direction = NormalizeDirection(result.Direction),
+                    Direction = result.Direction,
                     Reasoning = result.Reasoning,
                     AffectedAssetsJson = JsonSerializer.Serialize(result.AffectedAssets),
                     Confidence = result.ConfidenceScore,
@@ -172,15 +172,4 @@ public sealed class PostAnalysisRunner(
             StringComparison.Ordinal);
     }
 
-    private static string NormalizeDirection(string direction)
-    {
-        return direction.Trim().ToLowerInvariant() switch
-        {
-            "positive" => "positive",
-            "negative" => "negative",
-            "mixed" => "mixed",
-            "neutral" => "neutral",
-            _ => "neutral"
-        };
-    }
 }

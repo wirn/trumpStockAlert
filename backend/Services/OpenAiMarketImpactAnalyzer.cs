@@ -62,7 +62,7 @@ public sealed class OpenAiMarketImpactAnalyzer(
             {
                 MarketImpactScore = parsed.MarketImpactScore,
                 ConfidenceScore = parsed.ConfidenceScore,
-                Direction = NormalizeDirection(parsed.Direction),
+                Direction = parsed.Direction,
                 Reasoning = parsed.Reasoning,
                 AffectedAssets = parsed.AffectedAssets,
                 AnalyzerVersion = $"openai-{model}-v1",
@@ -99,15 +99,4 @@ public sealed class OpenAiMarketImpactAnalyzer(
         }
     }
 
-    private static string NormalizeDirection(string direction)
-    {
-        return direction.Trim().ToLowerInvariant() switch
-        {
-            "positive" => "positive",
-            "negative" => "negative",
-            "mixed" => "mixed",
-            "neutral" => "neutral",
-            _ => "neutral"
-        };
-    }
 }

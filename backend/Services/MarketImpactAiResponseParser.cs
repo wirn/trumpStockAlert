@@ -40,7 +40,7 @@ public sealed class MarketImpactAiResponseParser
         {
             MarketImpactScore = response.MarketImpactScore,
             ConfidenceScore = response.ConfidenceScore,
-            Direction = NormalizeDirection(response.Direction),
+            Direction = response.Direction,
             Reasoning = response.Reasoning,
             AffectedAssets = response.AffectedAssets
         };
@@ -73,9 +73,9 @@ public sealed class MarketImpactAiResponseParser
             throw new MarketImpactAiResponseParseException("marketImpactScore must be an integer from 1 to 100.");
         }
 
-        if (!IsValidDirection(response.Direction))
+        if (response.Direction is < -50 or > 50)
         {
-            throw new MarketImpactAiResponseParseException("direction must be one of: positive, negative, neutral, mixed.");
+            throw new MarketImpactAiResponseParseException("direction must be an integer from -50 to 50.");
         }
 
         if (string.IsNullOrWhiteSpace(response.Reasoning))
@@ -99,13 +99,4 @@ public sealed class MarketImpactAiResponseParser
         }
     }
 
-    private static bool IsValidDirection(string? direction)
-    {
-        return direction?.Trim().ToLowerInvariant() is "positive" or "negative" or "neutral" or "mixed";
-    }
-
-    private static string NormalizeDirection(string direction)
-    {
-        return direction.Trim().ToLowerInvariant();
-    }
 }

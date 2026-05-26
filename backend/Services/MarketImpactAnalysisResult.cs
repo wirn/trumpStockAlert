@@ -6,7 +6,7 @@ public sealed class MarketImpactAnalysisResult
 
     public required int ConfidenceScore { get; init; }
 
-    public required string Direction { get; init; }
+    public required int Direction { get; init; }
 
     public required string Reasoning { get; init; }
 

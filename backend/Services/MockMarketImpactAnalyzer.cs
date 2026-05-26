@@ -151,26 +151,26 @@ public sealed class MockMarketImpactAnalyzer : IMarketImpactAnalyzer
         return Math.Clamp(58 + matchCount * 6, 1, 92);
     }
 
-    private static string GetDirection(
+    private static int GetDirection(
         IReadOnlyCollection<string> positiveMatches,
         IReadOnlyCollection<string> negativeMatches)
     {
         if (positiveMatches.Count > 0 && negativeMatches.Count > 0)
         {
-            return "mixed";
+            return 0;
         }
 
         if (negativeMatches.Count > 0)
         {
-            return "negative";
+            return -25;
         }
 
         if (positiveMatches.Count > 0)
         {
-            return "positive";
+            return 25;
         }
 
-        return "neutral";
+        return 0;
     }
 
     private static IReadOnlyList<string> GetAffectedAssets(string content)

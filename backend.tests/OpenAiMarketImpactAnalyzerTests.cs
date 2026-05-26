@@ -27,7 +27,7 @@ public sealed class OpenAiMarketImpactAnalyzerTests
             {
               "marketImpactScore": 82,
               "confidenceScore": 77,
-              "direction": "negative",
+              "direction": -25,
               "reasoning": "Mentions tariffs and China.",
               "affectedAssets": ["SP500", "USD", "China equities"]
             }
@@ -75,7 +75,7 @@ public sealed class OpenAiMarketImpactAnalyzerTests
 
         Assert.Equal(82, result.MarketImpactScore);
         Assert.Equal(77, result.ConfidenceScore);
-        Assert.Equal("negative", result.Direction);
+        Assert.Equal(-25, result.Direction);
         Assert.Contains("SP500", result.AffectedAssets);
         Assert.StartsWith("openai-test-model-v1", result.AnalyzerVersion);
         Assert.Contains("confidenceScore", result.RawAiResponse);
@@ -99,7 +99,7 @@ public sealed class OpenAiMarketImpactAnalyzerTests
             {
               "marketImpactScore": 82,
               "confidenceScore": 77,
-              "direction": "bullish",
+              "direction": 51,
               "reasoning": "Invalid direction.",
               "affectedAssets": ["SP500"]
             }
