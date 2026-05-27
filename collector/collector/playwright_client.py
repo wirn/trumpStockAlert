@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 TRUTH_SOCIAL_BASE_URL = "https://truthsocial.com"
 _DEFAULT_TIMEOUT_MS = 30_000
 _EXTRA_WAIT_MS = 3_000
+_NON_CRITICAL_BLOCKED_PATH_PATTERNS = (
+    "/api/v1/truth/ads/impression",
+    "/api/v1/ads/",
+    "ads/impression",
+)
 
 # Module-level references so tests can monkeypatch them.
 try:
@@ -48,6 +53,17 @@ class TruthSocialTimeoutError(PlaywrightClientError):
 
 class TruthSocialEmptyResultError(PlaywrightClientError):
     """Raised when a profile load produces no usable posts unexpectedly."""
+
+
+def is_non_critical_blocked_url(url: str) -> bool:
+    """Return True for blocked Truth Social URLs that are not needed for posts."""
+    try:
+        path = urlparse(url).path
+    except ValueError:
+        path = url
+
+    normalized = path.lower()
+    return any(pattern in normalized for pattern in _NON_CRITICAL_BLOCKED_PATH_PATTERNS)
 
 
 class PlaywrightTruthSocialClient:
@@ -137,6 +153,13 @@ class PlaywrightTruthSocialClient:
                         )
                         logger.warning(
                             "Truth Social rate limit detected. Url=%s Status=%s",
+                            url,
+                            status,
+                        )
+                        return
+                    if status == 403 and is_non_critical_blocked_url(url):
+                        logger.warning(
+                            "Ignoring non-critical Truth Social HTTP 403. Url=%s Status=%s",
                             url,
                             status,
                         )

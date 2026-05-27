@@ -15,6 +15,7 @@ from collector.playwright_client import (
     TruthSocialEmptyResultError,
     TruthSocialRateLimitedError,
     TruthSocialTimeoutError,
+    is_non_critical_blocked_url,
 )
 
 # ---------------------------------------------------------------------------
@@ -65,6 +66,48 @@ def make_playwright_stack(
     mock_page.url = page_url
     mock_page.title = AsyncMock(return_value=page_title)
     mock_page.content = AsyncMock(return_value=page_content)
+
+    mock_context = MagicMock()
+    mock_context.new_page = AsyncMock(return_value=mock_page)
+
+    mock_browser = MagicMock()
+    mock_browser.new_context = AsyncMock(return_value=mock_context)
+    mock_browser.close = AsyncMock()
+
+    mock_chromium = MagicMock()
+    mock_chromium.launch = AsyncMock(return_value=mock_browser)
+
+    mock_pw = MagicMock()
+    mock_pw.chromium = mock_chromium
+    mock_pw.__aenter__ = AsyncMock(return_value=mock_pw)
+    mock_pw.__aexit__ = AsyncMock(return_value=False)
+
+    mock_async_playwright = MagicMock(return_value=mock_pw)
+    mock_stealth_instance = MagicMock()
+    mock_stealth_instance.apply_stealth_async = AsyncMock()
+    mock_stealth_type = MagicMock(return_value=mock_stealth_instance)
+
+    return mock_async_playwright, mock_stealth_type, mock_stealth_instance.apply_stealth_async
+
+
+def make_playwright_stack_with_responses(
+    responses: list[MagicMock],
+) -> tuple[MagicMock, MagicMock, AsyncMock]:
+    """Return Playwright/Stealth mocks that fire multiple responses during goto."""
+    registered: list[Callable] = []
+
+    async def mock_goto(*args, **kwargs) -> None:
+        for handler in registered:
+            for response in responses:
+                await handler(response)
+
+    mock_page = MagicMock()
+    mock_page.on = lambda event, fn: registered.append(fn) if event == "response" else None
+    mock_page.goto = mock_goto
+    mock_page.wait_for_timeout = AsyncMock()
+    mock_page.url = "https://truthsocial.com/@realDonaldTrump"
+    mock_page.title = AsyncMock(return_value="realDonaldTrump (@realDonaldTrump) - Truth Social")
+    mock_page.content = AsyncMock(return_value="<html><body>public profile</body></html>")
 
     mock_context = MagicMock()
     mock_context.new_page = AsyncMock(return_value=mock_page)
@@ -245,6 +288,40 @@ def test_fetch_raises_blocked_error_on_403_response(monkeypatch):
     client = PlaywrightTruthSocialClient("realDonaldTrump")
     with pytest.raises(TruthSocialBlockedError, match="HTTP 403"):
         client.fetch_latest_posts(max_posts=10)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://truthsocial.com/api/v1/truth/ads/impression?provider=revcontent&source=modal",
+        "https://truthsocial.com/api/v1/ads/some-placement",
+        "https://truthsocial.com/anything/ads/impression",
+    ],
+)
+def test_non_critical_blocked_url_matches_ad_impression_paths(url):
+    assert is_non_critical_blocked_url(url)
+
+
+def test_fetch_ignores_non_critical_ad_impression_403(monkeypatch, caplog):
+    responses = [
+        make_mock_response(
+            [],
+            url="https://truthsocial.com/api/v1/truth/ads/impression?provider=revcontent&source=modal",
+            status=403,
+        ),
+        make_mock_response(SAMPLE_POSTS, url=STATUSES_URL, status=200),
+    ]
+    mock_pw, mock_stealth_type, _ = make_playwright_stack_with_responses(responses)
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+
+    with caplog.at_level("WARNING"):
+        posts = client.fetch_latest_posts(max_posts=10)
+
+    assert [p["id"] for p in posts] == ["3", "2", "1"]
+    assert "Ignoring non-critical Truth Social HTTP 403" in caplog.text
 
 
 def test_fetch_raises_rate_limited_error_on_429_response(monkeypatch):
