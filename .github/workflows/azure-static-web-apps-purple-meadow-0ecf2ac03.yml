@@ -36,7 +36,7 @@ jobs:
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         env:
-          VITE_API_BASE_URL: https://affiliation-blades-logistics-law.trycloudflare.com
+          VITE_API_BASE_URL: https://lives-emma-couples-obtain.trycloudflare.com
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_MEADOW_0ECF2AC03 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
