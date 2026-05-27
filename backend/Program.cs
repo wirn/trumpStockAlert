@@ -5,10 +5,7 @@ using TrumpStockAlert.Api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 const string FrontendCorsPolicy = "FrontendCors";
-var allowedCorsOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>()
-    ?? [];
+var allowedCorsOrigins = GetAllowedCorsOrigins(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
