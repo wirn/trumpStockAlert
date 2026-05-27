@@ -16,7 +16,7 @@ services:
       OpenAI__ApiKey: ${OPENAI_API_KEY:-}
       OpenAI__Model: ${OPENAI_MODEL:-gpt-5.1-mini}
       OpenAI__TimeoutSeconds: ${OPENAI_TIMEOUT_SECONDS:-30}
-      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-http://100.92.230.97:5173,http://localhost:5173}
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-http://100.92.230.97:5173,http://localhost:5173,https://purple-meadow-0ecf2ac03.7.azurestaticapps.net}
       Collector__TruthSocialAccountId: ${TRUTH_SOCIAL_ACCOUNT_ID:-}
       MAX_POSTS: ${COLLECTOR_MAX_POSTS:-10}
       Collector__MaxPosts: ${COLLECTOR_MAX_POSTS:-5}
