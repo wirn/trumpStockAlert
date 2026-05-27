@@ -8,6 +8,22 @@ docker compose up -d --build api
 ssh -N -L 5432:localhost:5432 wirn@gen-eric-server
 
 
+SELECT
+    tp."Id" AS "PostId",
+    tp."CreatedAt",
+    tp."Author",
+    tp."Content",
+    pa."MarketImpactScore",
+    pa."Confidence",
+    pa."Direction",
+    pa."Reasoning",
+    pa."AnalyzedAt"
+FROM "post_analyses" pa
+INNER JOIN "truth_posts" tp
+    ON tp."Id" = pa."PostId"
+ORDER BY pa."MarketImpactScore" DESC
+LIMIT 3;
+
 # TrumpStockAlert
 
 Monitors Truth Social posts and analyzes their potential financial market impact using OpenAI.
