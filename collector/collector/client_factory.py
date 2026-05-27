@@ -13,7 +13,10 @@ def create_client(config: CollectorConfig) -> Any:
     if config.client_mode == "playwright":
         from collector.playwright_client import PlaywrightTruthSocialClient
 
-        return PlaywrightTruthSocialClient(config.truth_social_username)
+        return PlaywrightTruthSocialClient(
+            config.truth_social_username,
+            headless=config.collector_headless,
+        )
 
     from collector.truth_social_client import TruthbrushClient
 

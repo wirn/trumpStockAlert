@@ -17,6 +17,7 @@ class CollectorConfig:
     truth_posts_file_path: Path = Path("./data/truth-posts.json")
     output_mode: str = "console"
     client_mode: str = "truthbrush"
+    collector_headless: bool = True
     scheduler_api_key: str = ""
 
     @classmethod
@@ -55,6 +56,8 @@ class CollectorConfig:
         if client_mode not in {"truthbrush", "playwright"}:
             raise ValueError("COLLECTOR_CLIENT_MODE must be either `truthbrush` or `playwright`.")
 
+        collector_headless = _parse_bool_env("COLLECTOR_HEADLESS", default=True)
+
         truth_post_api_base_url = (
             os.getenv("TRUTH_POST_API_BASE_URL")
             or "http://localhost:5044"
@@ -75,5 +78,20 @@ class CollectorConfig:
             ),
             output_mode=output_mode,
             client_mode=client_mode,
+            collector_headless=collector_headless,
             scheduler_api_key=os.getenv("SCHEDULER_API_KEY", "").strip(),
         )
+
+
+def _parse_bool_env(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+
+    raise ValueError(f"{name} must be a boolean value.")

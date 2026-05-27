@@ -68,6 +68,7 @@ def make_playwright_stack(
     mock_page.content = AsyncMock(return_value=page_content)
 
     mock_context = MagicMock()
+    mock_context.add_init_script = AsyncMock()
     mock_context.new_page = AsyncMock(return_value=mock_page)
 
     mock_browser = MagicMock()
@@ -83,6 +84,8 @@ def make_playwright_stack(
     mock_pw.__aexit__ = AsyncMock(return_value=False)
 
     mock_async_playwright = MagicMock(return_value=mock_pw)
+    mock_async_playwright.mock_context = mock_context
+    mock_async_playwright.mock_browser = mock_browser
     mock_stealth_instance = MagicMock()
     mock_stealth_instance.apply_stealth_async = AsyncMock()
     mock_stealth_type = MagicMock(return_value=mock_stealth_instance)
@@ -110,6 +113,7 @@ def make_playwright_stack_with_responses(
     mock_page.content = AsyncMock(return_value="<html><body>public profile</body></html>")
 
     mock_context = MagicMock()
+    mock_context.add_init_script = AsyncMock()
     mock_context.new_page = AsyncMock(return_value=mock_page)
 
     mock_browser = MagicMock()
@@ -125,6 +129,8 @@ def make_playwright_stack_with_responses(
     mock_pw.__aexit__ = AsyncMock(return_value=False)
 
     mock_async_playwright = MagicMock(return_value=mock_pw)
+    mock_async_playwright.mock_context = mock_context
+    mock_async_playwright.mock_browser = mock_browser
     mock_stealth_instance = MagicMock()
     mock_stealth_instance.apply_stealth_async = AsyncMock()
     mock_stealth_type = MagicMock(return_value=mock_stealth_instance)
@@ -240,6 +246,58 @@ def test_fetch_returns_posts_from_intercepted_response(monkeypatch):
 
     assert [p["id"] for p in posts] == ["3", "2", "1"]
     mock_apply_stealth.assert_awaited_once()
+
+
+def test_fetch_launches_headless_by_default(monkeypatch):
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(SAMPLE_POSTS)
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+    client.fetch_latest_posts(max_posts=10)
+
+    launch_kwargs = mock_pw.return_value.chromium.launch.await_args.kwargs
+    assert launch_kwargs["headless"] is True
+
+
+def test_fetch_uses_desktop_context_fingerprint(monkeypatch):
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(SAMPLE_POSTS)
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump", headless=False)
+    client.fetch_latest_posts(max_posts=10)
+
+    launch_kwargs = mock_pw.return_value.chromium.launch.await_args.kwargs
+    context_kwargs = mock_pw.mock_context.new_page.await_args
+    new_context_kwargs = mock_pw.mock_browser.new_context.await_args.kwargs
+
+    assert launch_kwargs["headless"] is False
+    assert "HeadlessChrome" not in new_context_kwargs["user_agent"]
+    assert "Chrome/" in new_context_kwargs["user_agent"]
+    assert new_context_kwargs["viewport"] == {"width": 1365, "height": 768}
+    assert new_context_kwargs["locale"] == "en-US"
+    assert new_context_kwargs["timezone_id"] == "Europe/Stockholm"
+    assert new_context_kwargs["color_scheme"] == "light"
+    assert new_context_kwargs["device_scale_factor"] == 1
+    assert new_context_kwargs["is_mobile"] is False
+    assert new_context_kwargs["has_touch"] is False
+    assert context_kwargs is not None
+
+
+def test_fetch_registers_automation_reduction_init_script(monkeypatch):
+    mock_pw, mock_stealth_type, _ = make_playwright_stack(SAMPLE_POSTS)
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+    client.fetch_latest_posts(max_posts=10)
+
+    script = mock_pw.mock_context.add_init_script.await_args.kwargs["script"]
+    assert "navigator, 'webdriver'" in script
+    assert "navigator, 'languages'" in script
+    assert "navigator, 'plugins'" in script
+    assert "window.chrome" in script
 
 
 def test_fetch_respects_max_posts(monkeypatch):

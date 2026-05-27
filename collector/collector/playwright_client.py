@@ -13,11 +13,39 @@ logger = logging.getLogger(__name__)
 TRUTH_SOCIAL_BASE_URL = "https://truthsocial.com"
 _DEFAULT_TIMEOUT_MS = 30_000
 _EXTRA_WAIT_MS = 3_000
+_DESKTOP_CHROME_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/125.0.0.0 Safari/537.36"
+)
 _NON_CRITICAL_BLOCKED_PATH_PATTERNS = (
     "/api/v1/truth/ads/impression",
     "/api/v1/ads/",
     "ads/impression",
 )
+_STEALTH_INIT_SCRIPT = """
+(() => {
+  const defineGetter = (target, property, getter) => {
+    try {
+      Object.defineProperty(target, property, { get: getter, configurable: true });
+    } catch (_) {
+      // Leave the native browser value untouched if the property cannot be redefined.
+    }
+  };
+
+  defineGetter(navigator, 'webdriver', () => undefined);
+  defineGetter(navigator, 'languages', () => ['en-US', 'en']);
+  defineGetter(navigator, 'plugins', () => [
+    { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+    { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+    { name: 'Native Client', filename: 'internal-nacl-plugin' }
+  ]);
+
+  window.chrome = window.chrome || {};
+  window.chrome.runtime = window.chrome.runtime || {};
+  window.chrome.app = window.chrome.app || { isInstalled: false };
+})();
+"""
 
 # Module-level references so tests can monkeypatch them.
 try:
@@ -121,9 +149,16 @@ class PlaywrightTruthSocialClient:
             )
             try:
                 context = await browser.new_context(
-                    viewport={"width": 1280, "height": 900},
+                    user_agent=_DESKTOP_CHROME_USER_AGENT,
+                    viewport={"width": 1365, "height": 768},
                     locale="en-US",
+                    timezone_id="Europe/Stockholm",
+                    color_scheme="light",
+                    device_scale_factor=1,
+                    is_mobile=False,
+                    has_touch=False,
                 )
+                await context.add_init_script(script=_STEALTH_INIT_SCRIPT)
                 page = await context.new_page()
                 stealth = Stealth()
                 apply_stealth_async = getattr(stealth, "apply_stealth_async", None)

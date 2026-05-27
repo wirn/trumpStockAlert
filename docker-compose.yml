@@ -44,6 +44,7 @@ services:
       - api
     environment:
       COLLECTOR_CLIENT_MODE: playwright
+      COLLECTOR_HEADLESS: ${COLLECTOR_HEADLESS:-true}
       COLLECTOR_STORE_MODE: api
       TRUTH_POST_API_BASE_URL: http://api:8080
       TRUTH_SOCIAL_USERNAME: ${TRUTH_SOCIAL_USERNAME:-realDonaldTrump}
