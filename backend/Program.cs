@@ -84,20 +84,14 @@ app.Run();
 
 static string[] GetAllowedCorsOrigins(IConfiguration configuration)
 {
-    var configuredOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
-    if (configuredOrigins is { Length: > 0 })
+    var origins = configuration["Cors:AllowedOrigins"];
+
+    if (!string.IsNullOrWhiteSpace(origins))
     {
-        return configuredOrigins
-            .SelectMany(SplitOrigins)
+        return origins
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-    }
-
-    var configuredOriginList = configuration["Cors:AllowedOrigins"];
-    var origins = SplitOrigins(configuredOriginList).ToArray();
-    if (origins.Length > 0)
-    {
-        return origins;
     }
 
     return
@@ -105,13 +99,6 @@ static string[] GetAllowedCorsOrigins(IConfiguration configuration)
         "http://100.92.230.97:5173",
         "http://localhost:5173"
     ];
-}
-
-static IEnumerable<string> SplitOrigins(string? value)
-{
-    return (value ?? string.Empty)
-        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .Where(origin => !string.IsNullOrWhiteSpace(origin));
 }
 
 public partial class Program { }
