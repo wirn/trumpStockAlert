@@ -52,6 +52,9 @@ builder.Services.AddScoped<ICollectorProcessRunner, CollectorProcessRunner>();
 builder.Services.AddScoped<ICollectorTestRunner, CollectorTestRunner>();
 builder.Services.AddScoped<ICollectorRunner, CollectorRunner>();
 builder.Services.AddScoped<IFetcherRunService, FetcherRunService>();
+builder.Services.Configure<AlertSettings>(builder.Configuration.GetSection(AlertSettings.SectionName));
+builder.Services.AddScoped<IAlertEvaluator, AlertEvaluator>();
+builder.Services.AddScoped<IEmailSender, LogOnlyEmailSender>();
 builder.Services.AddHttpClient<ITruthSocialCollectorClient, TruthSocialCollectorClient>(
     TruthSocialCollectorClient.ConfigureHttpClient);
 builder.Services.AddSingleton<MarketImpactPromptBuilder>();
