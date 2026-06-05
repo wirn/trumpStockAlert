@@ -2,58 +2,70 @@
 **/bin/
 **/obj/
 **/.build-validation/
+**/.test-obj/
+*.csproj.user
 
-# IDE
+# IDE / editor
 **/.vs/
 **/.vscode/
 *.user
 *.suo
+.claude/settings.local.json
+
+# Logs
+*.log
+*.err.log
+
+# Temporary files
+*.tmp
 
 # Python
 **/__pycache__/
+__pycache__/
 **/*.pyc
+*.py[cod]
 **/.pytest_cache/
 **/.pytest-*/
 pytest-cache-files-*/
 collector/.venv/
 
-# Data (local db)
-backend/Data/*.db
-backend/Data/*.db-shm
-backend/Data/*.db-wal
-backend/data/*.db
-backend/data/*.db-shm
-backend/data/*.db-wal
-
-# Collector data
-collector/data/*.json
+# Python packaging artifacts
+*.egg-info/
 collector/*.egg-info/
 collector/**/*.egg-info/
-collector/.env
-collector/.env.*
+
+# JavaScript / Playwright
 truthsocial-fetcher-poc/node_modules/
-truthsocial-fetcher-poc/output/*.json
-truthsocial-fetcher-poc/output/*.html
-truthsocial-fetcher-poc/.auth/
-truthsocial-fetcher-poc/.env
-truthsocial-fetcher-poc/.env.*
 truthsocial-fetcher-poc/playwright-report/
 truthsocial-fetcher-poc/test-results/
 truthsocial-fetcher-poc/.playwright/
 
-# Azure Functions
+# Local environment / secrets
+.env
+collector/.env
+collector/.env.*
+truthsocial-fetcher-poc/.env
+truthsocial-fetcher-poc/.env.*
 collector-function/local.settings.json
+backend/Properties/PublishProfiles/
+docs/keys.md
+
+# Local data / dumps
+collector/data/
+*.db
+*.sqlite
+backend/Data/*.db-shm
+backend/Data/*.db-wal
+backend/data/*.db-shm
+backend/data/*.db-wal
+truthsocial-fetcher-poc/output/*.json
+truthsocial-fetcher-poc/output/*.html
+truthsocial-fetcher-poc/.auth/
 
 # Deploy artifacts
 backend/publish/
 backend/app.zip
 *.zip
-
-# Publish profiles (kan innehålla secrets)
-backend/Properties/PublishProfiles/
-
-# Misc
-info.md
 
 # Azurite local storage
 AzuriteConfig
@@ -61,8 +73,6 @@ __azurite_db_*.json
 __blobstorage__/
 __queuestorage__/
 __tablestorage__/
-.env
 
-docs/keys.md
-
-.claude/settings.local.json
+# Misc
+info.md
