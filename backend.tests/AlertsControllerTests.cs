@@ -87,6 +87,23 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Equal("Sent", alert.SendStatus);
         Assert.NotNull(alert.SentAt);
         Assert.Equal(body.CreatedAlertIds.Single(), alert.Id);
+        Assert.Equal(
+            string.Join(
+                Environment.NewLine,
+                "Score: 90",
+                "Direction: 25",
+                "Confidence: 80",
+                string.Empty,
+                "Test analysis reasoning.",
+                string.Empty,
+                "Tariffs and market-moving comments.",
+                string.Empty,
+                "https://truthsocial.com/@realDonaldTrump/posts/1"),
+            alert.Body);
+        Assert.DoesNotContain("threshold", alert.Body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Post ID", alert.Body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Analysis ID", alert.Body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("URL:", alert.Body, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

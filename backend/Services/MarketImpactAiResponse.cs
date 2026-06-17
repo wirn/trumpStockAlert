@@ -11,4 +11,6 @@ public sealed class MarketImpactAiResponse
     public required string Reasoning { get; init; }
 
     public required IReadOnlyList<string> AffectedAssets { get; init; }
+
+    public string Category { get; set; } = "Other";
 }

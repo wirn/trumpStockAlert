@@ -137,15 +137,15 @@ public sealed class AlertEvaluator(
         var subject = $"Market impact alert: score {analysis.MarketImpactScore}";
         var body = string.Join(
             Environment.NewLine,
-            $"A Truth Social post met the alert threshold of {settings.Threshold}.",
-            $"Post ID: {analysis.PostId}",
-            $"Analysis ID: {analysis.Id}",
             $"Score: {analysis.MarketImpactScore}",
             $"Direction: {analysis.Direction}",
             $"Confidence: {analysis.Confidence}",
-            $"URL: {analysis.Post.Url}",
             string.Empty,
-            analysis.Reasoning);
+            analysis.Reasoning,
+            string.Empty,
+            analysis.Post.Content,
+            string.Empty,
+            analysis.Post.Url);
 
         return new AlertEmailMessage
         {
