@@ -21,6 +21,7 @@ _DESKTOP_CHROME_USER_AGENT = (
 _NON_CRITICAL_BLOCKED_PATH_PATTERNS = (
     "/api/v1/truth/ads/impression",
     "/api/v1/ads/",
+    "/api/v3/pepe/instance",
     "ads/impression",
 )
 _STEALTH_INIT_SCRIPT = """
@@ -171,6 +172,7 @@ class PlaywrightTruthSocialClient:
                 await apply_stealth_async(page)
 
                 captured: list[dict[str, Any]] = []
+                deferred_blocked_paths: list[str] = []
                 relevant_response_seen = False
                 response_failure: PlaywrightClientError | None = None
                 navigation_timeout: Exception | None = None
@@ -193,10 +195,12 @@ class PlaywrightTruthSocialClient:
                         )
                         return
                     if status == 403 and is_non_critical_blocked_url(url):
+                        deferred_blocked_paths.append(path)
                         logger.warning(
-                            "Ignoring non-critical Truth Social HTTP 403. Url=%s Status=%s",
-                            url,
+                            "Truth Social HTTP 403 treated as non-critical. Path=%s Status=%s Url=%s",
+                            path,
                             status,
+                            url,
                         )
                         return
                     if status == 403 and self._is_block_signal_path(path):
@@ -204,9 +208,10 @@ class PlaywrightTruthSocialClient:
                             f"Truth Social returned HTTP 403 (Forbidden). Path: {path}."
                         )
                         logger.warning(
-                            "Truth Social block detected. Url=%s Status=%s",
-                            url,
+                            "Truth Social HTTP 403 treated as fatal block signal. Path=%s Status=%s Url=%s",
+                            path,
                             status,
+                            url,
                         )
                         return
                     if status in {401, 407} and self._is_block_signal_path(path):
@@ -270,6 +275,11 @@ class PlaywrightTruthSocialClient:
                 )
 
                 if not captured:
+                    if deferred_blocked_paths:
+                        logger.warning(
+                            "No statuses response captured after non-critical Truth Social HTTP 403 response(s). Paths=%s",
+                            ",".join(deferred_blocked_paths),
+                        )
                     page_block_error = await self._detect_blocked_page(page)
                     if page_block_error is not None:
                         raise page_block_error

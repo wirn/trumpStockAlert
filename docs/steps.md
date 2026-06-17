@@ -161,8 +161,8 @@
     - [x] 11i. Lägg till dedupe så samma analys inte skickas flera gånger
     - [x] 11j. Testa alert-flöde lokalt/server
     - [x] 11k. Koppla alerts till scheduler-flödet
-    - [ ] 11l. Lägg till riktig e-postleverantör
-    - [ ] 11m. Verifiera riktigt e-postutskick
+    - [x] 11l. Lägg till riktig e-postleverantör
+    - [x] 11m. Verifiera riktigt e-postutskick
 
 - [~] 12. Frontend/dashboard
     - [x] 12a. React/Vite dashboard finns

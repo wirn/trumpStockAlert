@@ -336,7 +336,7 @@ def test_fetch_raises_when_no_statuses_response_is_captured(monkeypatch):
         client.fetch_latest_posts(max_posts=10)
 
 
-def test_fetch_raises_blocked_error_on_403_response(monkeypatch):
+def test_fetch_raises_blocked_error_on_critical_403_response(monkeypatch, caplog):
     mock_pw, mock_stealth_type, _ = make_playwright_stack(
         SAMPLE_POSTS, response_status=403
     )
@@ -344,8 +344,12 @@ def test_fetch_raises_blocked_error_on_403_response(monkeypatch):
     monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
 
     client = PlaywrightTruthSocialClient("realDonaldTrump")
-    with pytest.raises(TruthSocialBlockedError, match="HTTP 403"):
-        client.fetch_latest_posts(max_posts=10)
+    with caplog.at_level("WARNING"):
+        with pytest.raises(TruthSocialBlockedError, match="HTTP 403"):
+            client.fetch_latest_posts(max_posts=10)
+
+    assert "Truth Social HTTP 403 treated as fatal block signal" in caplog.text
+    assert "Path=/api/v1/accounts/12345/statuses Status=403" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -353,6 +357,7 @@ def test_fetch_raises_blocked_error_on_403_response(monkeypatch):
     [
         "https://truthsocial.com/api/v1/truth/ads/impression?provider=revcontent&source=modal",
         "https://truthsocial.com/api/v1/ads/some-placement",
+        "https://truthsocial.com/api/v3/pepe/instance",
         "https://truthsocial.com/anything/ads/impression",
     ],
 )
@@ -379,7 +384,59 @@ def test_fetch_ignores_non_critical_ad_impression_403(monkeypatch, caplog):
         posts = client.fetch_latest_posts(max_posts=10)
 
     assert [p["id"] for p in posts] == ["3", "2", "1"]
-    assert "Ignoring non-critical Truth Social HTTP 403" in caplog.text
+    assert "Truth Social HTTP 403 treated as non-critical" in caplog.text
+
+
+def test_fetch_ignores_non_critical_pepe_instance_403_when_statuses_are_captured(
+    monkeypatch,
+    caplog,
+):
+    responses = [
+        make_mock_response(
+            [],
+            url="https://truthsocial.com/api/v3/pepe/instance",
+            status=403,
+        ),
+        make_mock_response(SAMPLE_POSTS, url=STATUSES_URL, status=200),
+    ]
+    mock_pw, mock_stealth_type, _ = make_playwright_stack_with_responses(responses)
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+
+    with caplog.at_level("WARNING"):
+        posts = client.fetch_latest_posts(max_posts=10)
+
+    assert [p["id"] for p in posts] == ["3", "2", "1"]
+    assert "Truth Social HTTP 403 treated as non-critical" in caplog.text
+    assert "Path=/api/v3/pepe/instance Status=403" in caplog.text
+
+
+def test_fetch_fails_when_pepe_instance_403_occurs_without_statuses(
+    monkeypatch,
+    caplog,
+):
+    responses = [
+        make_mock_response(
+            [],
+            url="https://truthsocial.com/api/v3/pepe/instance",
+            status=403,
+        ),
+    ]
+    mock_pw, mock_stealth_type, _ = make_playwright_stack_with_responses(responses)
+    monkeypatch.setattr("collector.playwright_client.async_playwright", mock_pw)
+    monkeypatch.setattr("collector.playwright_client.Stealth", mock_stealth_type)
+
+    client = PlaywrightTruthSocialClient("realDonaldTrump")
+
+    with caplog.at_level("WARNING"):
+        with pytest.raises(TruthSocialEmptyResultError, match="No public posts"):
+            client.fetch_latest_posts(max_posts=10)
+
+    assert "Truth Social HTTP 403 treated as non-critical" in caplog.text
+    assert "No statuses response captured after non-critical Truth Social HTTP 403" in caplog.text
+    assert "/api/v3/pepe/instance" in caplog.text
 
 
 def test_fetch_raises_rate_limited_error_on_429_response(monkeypatch):
