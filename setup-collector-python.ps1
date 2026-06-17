@@ -58,9 +58,8 @@ try {
 
     Write-Host ""
     Write-Host "Collector Python setup complete."
-    Write-Host "Use this interpreter for the Azure Function:"
-    Write-Host "  Collector__PythonExecutable=$venvPython"
-    Write-Host "  Collector__CollectorDirectory=$collectorDirectory"
+    Write-Host "Use this interpreter for local collector commands:"
+    Write-Host "  $venvPython -m collector.main --test"
 }
 finally {
     $env:TEMP = $originalTemp

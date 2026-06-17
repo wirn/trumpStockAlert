@@ -1,9 +1,0 @@
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "BackendBaseUrl": "http://localhost:5044",
-    "Collector__ApiKey": "<local-development-secret>"
-  }
-}

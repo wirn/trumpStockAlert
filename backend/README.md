@@ -54,7 +54,7 @@ If you use Docker SQL Server or another local SQL Server instance, replace only 
 
 ## Azure Configuration
 
-For Azure App Service, Azure Functions, or containers, set the connection string as an environment variable or app setting:
+For Azure App Service or containers, set the connection string as an environment variable or app setting:
 
 ```powershell
 $env:ConnectionStrings__DefaultConnection="Server=tcp:<server>.database.windows.net,1433;Initial Catalog=<database>;User ID=<user>;Password=<password>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
@@ -66,27 +66,19 @@ In Azure Portal, use an Application Setting named:
 ConnectionStrings__DefaultConnection
 ```
 
-The production collector endpoint also requires an API key. Configure it in Azure App Service as:
+Scheduled/admin endpoints require an API key. Configure it as:
 
 ```text
-Collector__ApiKey
+Scheduler__ApiKey
 ```
 
-Do not store the real value in source control. Optional collector settings use the same double-underscore convention, for example `Collector__MaxPosts`, `Collector__LookbackMinutes`, and `Collector__BackendBaseUrl`.
+Do not store the real value in source control. Optional collector settings use the same double-underscore convention, for example `Collector__MaxPosts`.
 
 Prefer managed identity for production when you wire up Azure SQL authentication later. If using SQL credentials, store them in Azure app settings or Key Vault, never in source control.
 
-## Azure Collector Runtime
+## Collector Runtime
 
-The backend App Service does not run the collector process in production and does not require PowerShell. Scheduled collection is handled by the Azure Function project, which runs the Python collector directly and saves posts through `POST /api/truth-posts`.
-
-`POST /api/collector/run` is retained as a local Development-only helper. It still requires:
-
-```text
-Collector__ApiKey
-```
-
-In non-Development environments, `/api/collector/run` returns `404` after API-key validation and does not attempt to start PowerShell or Python.
+Scheduled collection is handled by the Docker Compose `collector-scheduler` service. It runs the Python collector container, then calls the protected analysis and alert endpoints with `X-TrumpStockAlert-Scheduler-Key`.
 
 ## Migrations
 
@@ -219,10 +211,10 @@ Runs the production-safe collector flow. It uses the same Truthbrush-based fetch
 Required header:
 
 ```text
-x-api-key: <Collector__ApiKey>
+X-TrumpStockAlert-Scheduler-Key: <Scheduler__ApiKey>
 ```
 
-This endpoint is intended for scheduled execution, such as an Azure Function Timer Trigger every 5 minutes.
+This endpoint is intended for manual/admin execution. The Docker scheduler runs the Python collector container directly for scheduled collection.
 
 ### POST `/api/collector/run-test`
 

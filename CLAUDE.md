@@ -10,7 +10,7 @@ Four separate components live in the repo root:
 | --------------------- | ---------------------------------------- | -------------------------------------------------- |
 | `backend/`            | ASP.NET Core 10 (C#)                     | REST API, data persistence, AI analysis            |
 | `collector/`          | Python                                   | Fetches posts from Truth Social                    |
-| `collector-function/` | Azure Functions v4 (C#, isolated worker) | Timer trigger that calls the backend on a schedule |
+| `collector-scheduler/` | Docker + shell                          | Runs collector, analysis, and alerts on a schedule |
 | `frontend/`           | React 19, Vite, TypeScript, SCSS         | Admin/dashboard SPA                                |
 
 ## Commands
@@ -66,22 +66,14 @@ python -m collector.main             # normal run with lookback window
 pytest                               # run tests
 ```
 
-### Azure Function
-
-```powershell
-cd collector-function
-dotnet build
-func start     # requires Azure Functions Core Tools
-```
-
 ## Architecture and data flow
 
 ### Happy path
 
-1. **Azure Function** (`collector-function/CollectorTimerFunction.cs`) fires every 5 minutes and calls `POST /api/collector/run` with an `x-api-key` header.
-2. **`CollectorController`** verifies the `X-TrumpStockAlert-Scheduler-Key` header against `Scheduler:ApiKey` config (timing-safe compare).
-3. **`CollectorRunner`** calls `TruthSocialCollectorClient` directly against the Truth Social Mastodon-compatible API (`/api/v1/accounts/{id}/statuses`) and saves new posts via `TruthPostService`.
-4. **`POST /api/analysis/run`** triggers `PostAnalysisRunner`, which finds all posts without a `PostAnalysis`, passes each to `IMarketImpactAnalyzer`, and saves results.
+1. **`collector-scheduler`** waits for API health, then runs the Python collector container with `docker compose run --rm --no-deps collector`.
+2. The **Python Playwright collector** fetches Truth Social posts and saves them through the backend API.
+3. If collection succeeds, the scheduler calls `POST /api/analyses/run` with `X-TrumpStockAlert-Scheduler-Key`.
+4. If analysis succeeds, the scheduler calls `POST /api/alerts/run` with the same scheduler key.
 5. The **frontend** polls the backend REST endpoints to display posts and analyses.
 
 ### Analyzer selection
@@ -93,9 +85,10 @@ func start     # requires Azure Functions Core Tools
 
 ### Dual collector implementations
 
-There are **two parallel collector paths**:
+There are **two collector paths**:
 
-- `CollectorRunner` + `TruthSocialCollectorClient`: pure .NET HTTP client, used for the scheduled/production flow.
+- `collector/` Python package: used by the Docker scheduler for the scheduled flow.
+- `CollectorRunner` + `TruthSocialCollectorClient`: pure .NET HTTP client, reachable through manual/admin API calls.
 - `CollectorProcessRunner`: spawns a PowerShell subprocess to run the Python `collector/` package, used by `CollectorController.RunCollectorTestMode` in Development only.
 
 The Python collector (`collector/`) is a standalone package. It supports `--test` (1 post, no lookback) and `--skip-lookback` flags, and can write to a JSON file or call the backend API (`COLLECTOR_STORE_MODE=api`).
@@ -121,10 +114,8 @@ All backend config follows ASP.NET Core conventions (appsettings → env vars wi
 | `Analyzer:Provider`                   | `"OpenAI"` or omit for mock                            |
 | `OpenAI:ApiKey`                       | Store in user secrets locally                          |
 | `OpenAI:Model`                        | e.g. `gpt-4o-mini`                                     |
-| `Scheduler:ApiKey`                    | Required for `POST /api/collector/run`                 |
+| `Scheduler:ApiKey`                    | Required for protected scheduler/admin endpoints       |
 | `Collector:TruthSocialUsername`       | e.g. `realDonaldTrump`                                 |
 | `Collector:TruthSocialAccountId`      | Optional; skips account lookup API call                |
 | `Collector:MaxPosts`                  | Default 10                                             |
 | `Cors:AllowedOrigins`                 | Comma-separated or array; defaults to `localhost:5173` |
-
-For the Azure Function, set `BackendBaseUrl` and `Collector:ApiKey` in `local.settings.json` or Azure App Settings.

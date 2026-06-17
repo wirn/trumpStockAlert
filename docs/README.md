@@ -47,7 +47,7 @@ Monitors Truth Social posts and analyzes their potential financial market impact
 |---|---|---|
 | `backend/` | ASP.NET Core 10 | REST API, database, AI analysis |
 | `collector/` | Python | Fetches posts from Truth Social |
-| `collector-function/` | Azure Functions v4 (.NET) | Timer that triggers the collector every 5 minutes |
+| `collector-scheduler/` | Docker + shell | Runs the collector, analysis, and alerts on a schedule |
 | `frontend/` | React 19 + Vite + TypeScript | Admin and dashboard UI |
 
 ---
@@ -58,7 +58,6 @@ Monitors Truth Social posts and analyzes their potential financial market impact
 - Node.js 20+
 - Python 3.10+
 - PostgreSQL
-- (Optional) Azure Functions Core Tools — only needed to run the timer function locally
 
 ---
 
@@ -90,7 +89,7 @@ Create `backend/appsettings.Development.json` (never committed):
 }
 ```
 
-`Scheduler:ApiKey` protects the `POST /api/collector/run` endpoint. The Azure Function and the frontend both send this key.
+`Scheduler:ApiKey` protects scheduled/admin endpoints such as `POST /api/collector/run`, `POST /api/analyses/run`, and `POST /api/alerts/run`. The Docker scheduler and frontend admin actions both send this key.
 
 If `Analyzer:Provider` is omitted or set to anything other than `"OpenAI"`, the mock analyzer is used (no API calls, deterministic fake scores).
 
@@ -209,38 +208,6 @@ python -m collector.main --skip-lookback  # fetch latest N posts without time fi
 ```powershell
 cd collector
 pytest
-```
-
----
-
-## Azure Function (collector-function)
-
-The timer function runs every 5 minutes and calls `POST /api/collector/run` on the backend. It does not run the Python collector directly — the backend handles fetching via its own .NET HTTP client.
-
-### Configuration
-
-`collector-function/local.settings.json` (never committed):
-
-```json
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "BackendBaseUrl": "http://localhost:5044",
-    "Collector__ApiKey": "a-random-secret-you-choose"
-  }
-}
-```
-
-`Collector__ApiKey` must match `Scheduler:ApiKey` in the backend.
-
-### Run locally
-
-```powershell
-cd collector-function
-dotnet build
-func start
 ```
 
 ---

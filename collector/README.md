@@ -2,7 +2,7 @@
 
 Step 1 of `trumpStockAlert`: a small Python Collector that fetches recent public Truth Social posts from Donald Trump's account using [Truthbrush](https://github.com/stanfordio/truthbrush), normalizes them, sends them to the backend API, and prints newly saved posts as formatted JSON.
 
-This is intentionally only the Collector. It does not include AI scoring, email alerts, Azure hosting, or a React dashboard yet.
+This is intentionally only the Collector. It does not include AI scoring, email alerts, scheduling, or a React dashboard yet.
 
 ## Project Structure
 
@@ -28,7 +28,7 @@ data/
 
 Truthbrush requires Python 3.10 or newer.
 
-From the repository root, the Function-friendly setup is:
+From the repository root, the helper setup is:
 
 ```powershell
 .\setup-collector-python.ps1 -Dev
@@ -116,6 +116,6 @@ Duplicate detection uses `(source, externalId)`, which maps to the external Trut
 python -m pytest
 ```
 
-## Future Hosting Notes
+## Scheduling Notes
 
-The Collector is designed so it can later be wrapped by a scheduler or low-cost Azure host, such as Azure Functions timer trigger or Azure Container Apps Jobs. Hosting is not implemented in this step.
+Scheduled collection is handled by the repository-level Docker Compose `collector-scheduler` service.
