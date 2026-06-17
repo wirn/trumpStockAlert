@@ -18,6 +18,14 @@ def test_collector_success_triggers_analysis() -> None:
     assert "run_analysis" in script
 
 
+def test_collector_run_does_not_rebuild_or_start_dependencies() -> None:
+    script = _script()
+
+    assert "docker compose run --rm --no-deps collector" in script
+    assert "--build collector" not in script
+    assert "docker compose up" not in script
+
+
 def test_successful_analysis_triggers_alerts() -> None:
     script = _script()
 

@@ -168,10 +168,10 @@ log "Collector scheduler started. IntervalSeconds=$interval_seconds JitterSecond
 wait_for_api
 
 while true; do
-  log "Starting collector run via docker compose."
+  log "Starting one-shot collector run via docker compose without rebuilding or starting dependencies."
 
   collector_exit_code=0
-  docker compose run --rm --build collector || collector_exit_code=$?
+  docker compose run --rm --no-deps collector || collector_exit_code=$?
 
   if [ "$collector_exit_code" -eq 0 ]; then
     log "Collector run succeeded."
