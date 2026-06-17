@@ -21,6 +21,7 @@ _DESKTOP_CHROME_USER_AGENT = (
 _NON_CRITICAL_BLOCKED_PATH_PATTERNS = (
     "/api/v1/truth/ads/impression",
     "/api/v1/ads/",
+    "/api/v1/pepe/registrations",
     "/api/v3/pepe/instance",
     "ads/impression",
 )

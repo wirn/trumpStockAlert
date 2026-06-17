@@ -357,6 +357,7 @@ def test_fetch_raises_blocked_error_on_critical_403_response(monkeypatch, caplog
     [
         "https://truthsocial.com/api/v1/truth/ads/impression?provider=revcontent&source=modal",
         "https://truthsocial.com/api/v1/ads/some-placement",
+        "https://truthsocial.com/api/v1/pepe/registrations",
         "https://truthsocial.com/api/v3/pepe/instance",
         "https://truthsocial.com/anything/ads/impression",
     ],
@@ -394,6 +395,11 @@ def test_fetch_ignores_non_critical_pepe_instance_403_when_statuses_are_captured
     responses = [
         make_mock_response(
             [],
+            url="https://truthsocial.com/api/v1/pepe/registrations",
+            status=403,
+        ),
+        make_mock_response(
+            [],
             url="https://truthsocial.com/api/v3/pepe/instance",
             status=403,
         ),
@@ -410,14 +416,20 @@ def test_fetch_ignores_non_critical_pepe_instance_403_when_statuses_are_captured
 
     assert [p["id"] for p in posts] == ["3", "2", "1"]
     assert "Truth Social HTTP 403 treated as non-critical" in caplog.text
+    assert "Path=/api/v1/pepe/registrations Status=403" in caplog.text
     assert "Path=/api/v3/pepe/instance Status=403" in caplog.text
 
 
-def test_fetch_fails_when_pepe_instance_403_occurs_without_statuses(
+def test_fetch_fails_when_deferred_pepe_403s_occur_without_statuses(
     monkeypatch,
     caplog,
 ):
     responses = [
+        make_mock_response(
+            [],
+            url="https://truthsocial.com/api/v1/pepe/registrations",
+            status=403,
+        ),
         make_mock_response(
             [],
             url="https://truthsocial.com/api/v3/pepe/instance",
@@ -436,6 +448,7 @@ def test_fetch_fails_when_pepe_instance_403_occurs_without_statuses(
 
     assert "Truth Social HTTP 403 treated as non-critical" in caplog.text
     assert "No statuses response captured after non-critical Truth Social HTTP 403" in caplog.text
+    assert "/api/v1/pepe/registrations" in caplog.text
     assert "/api/v3/pepe/instance" in caplog.text
 
 
