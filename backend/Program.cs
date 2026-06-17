@@ -54,7 +54,20 @@ builder.Services.AddScoped<ICollectorRunner, CollectorRunner>();
 builder.Services.AddScoped<IFetcherRunService, FetcherRunService>();
 builder.Services.Configure<AlertSettings>(builder.Configuration.GetSection(AlertSettings.SectionName));
 builder.Services.AddScoped<IAlertEvaluator, AlertEvaluator>();
-builder.Services.AddScoped<IEmailSender, LogOnlyEmailSender>();
+builder.Services.AddScoped<LogOnlyEmailSender>();
+builder.Services.AddHttpClient<SendGridEmailSender>(client =>
+{
+    client.BaseAddress = new Uri("https://api.sendgrid.com");
+});
+builder.Services.AddScoped<IEmailSender>(serviceProvider =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var emailProvider = configuration["EMAIL_PROVIDER"] ?? configuration["Email:Provider"];
+
+    return string.Equals(emailProvider, "SendGrid", StringComparison.OrdinalIgnoreCase)
+        ? serviceProvider.GetRequiredService<SendGridEmailSender>()
+        : serviceProvider.GetRequiredService<LogOnlyEmailSender>();
+});
 builder.Services.AddHttpClient<ITruthSocialCollectorClient, TruthSocialCollectorClient>(
     TruthSocialCollectorClient.ConfigureHttpClient);
 builder.Services.AddSingleton<MarketImpactPromptBuilder>();
