@@ -159,7 +159,7 @@
     - [x] 11g. Skapa `POST /api/alerts/run`
     - [x] 11h. Lägg till threshold, exempelvis score >= 7
     - [x] 11i. Lägg till dedupe så samma analys inte skickas flera gånger
-    - [ ] 11j. Testa alert-flöde lokalt
+    - [x] 11j. Testa alert-flöde lokalt/server
     - [ ] 11k. Koppla alerts till scheduler-flödet
     - [ ] 11l. Lägg till riktig e-postleverantör
     - [ ] 11m. Verifiera riktigt e-postutskick

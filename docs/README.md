@@ -5,6 +5,10 @@ cd ~/projects/trumpStockAlert
 docker compose up -d --build api collector-scheduler
 docker compose up -d --build api
 
+-om inte på nätet-
+ssh wirn@gen-eric-server
+
+-komma åt db-
 ssh -N -L 5432:localhost:5432 wirn@gen-eric-server
 
 
