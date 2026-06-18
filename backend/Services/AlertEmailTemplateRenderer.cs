@@ -8,18 +8,18 @@ namespace TrumpStockAlert.Api.Services;
 public sealed class AlertEmailTemplateRenderer
 {
     private static readonly HtmlEncoder Html = HtmlEncoder.Default;
+    private const string AlertSubject = "Trump fibblar med marknaden!";
 
     public AlertEmailMessage Render(AlertSettings settings, PostAnalysis analysis)
     {
         var direction = GetDirectionDisplay(analysis.Direction);
-        var subject = $"Market impact alert: score {analysis.MarketImpactScore} ({direction.Label})";
         var plainTextBody = BuildPlainTextBody(settings, analysis, direction);
         var htmlBody = BuildHtmlBody(settings, analysis, direction);
 
         return new AlertEmailMessage
         {
             Recipient = settings.Recipient,
-            Subject = subject,
+            Subject = AlertSubject,
             Body = plainTextBody,
             HtmlBody = htmlBody
         };
@@ -65,7 +65,7 @@ public sealed class AlertEmailTemplateRenderer
 
         lines.Add(string.Empty);
         lines.Add($"Alert type: {settings.AlertType}");
-        lines.Add($"Threshold: {settings.Threshold}");
+        lines.Add("Alert criteria: score > 60, confidence > 20, direction outside -4 to +4");
         lines.Add($"Analyzer version: {ValueOrFallback(analysis.AnalyzerVersion, "Unknown")}");
         lines.Add($"Post ID: {analysis.PostId}");
         lines.Add($"Analysis ID: {analysis.Id}");
@@ -165,7 +165,7 @@ public sealed class AlertEmailTemplateRenderer
         }
 
         builder.AppendLine("<tr><td style=\"padding:26px 22px 22px 22px;background-color:#eef2ff;border-top:1px solid #d1d5db;\">");
-        builder.AppendLine($"<div style=\"font-size:12px;line-height:20px;color:#4b5563;text-align:center;\">Alert type: {Encode(settings.AlertType)} &bull; Threshold: {settings.Threshold} &bull; Analyzer: {Encode(ValueOrFallback(analysis.AnalyzerVersion, "Unknown"))}</div>");
+        builder.AppendLine($"<div style=\"font-size:12px;line-height:20px;color:#4b5563;text-align:center;\">Alert type: {Encode(settings.AlertType)} &bull; Criteria: score &gt; 60, confidence &gt; 20, direction outside -4 to +4 &bull; Analyzer: {Encode(ValueOrFallback(analysis.AnalyzerVersion, "Unknown"))}</div>");
         builder.AppendLine($"<div style=\"font-size:12px;line-height:20px;color:#6b7280;text-align:center;\">Post ID {analysis.PostId} &bull; Analysis ID {analysis.Id}</div>");
         builder.AppendLine("<div style=\"padding-top:10px;font-size:13px;line-height:20px;color:#374151;text-align:center;\">&copy; TrumpStockAlert Financial Intelligence. Real-time Truth Social Impact Analysis.</div>");
         builder.AppendLine("</td></tr>");

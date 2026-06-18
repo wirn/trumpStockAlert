@@ -15,6 +15,9 @@ public sealed class AlertEvaluator(
 {
     private const string SentStatus = "Sent";
     private const string FailedStatus = "Failed";
+    private const int MinimumMarketImpactScore = 60;
+    private const int MinimumConfidenceScore = 20;
+    private const int NeutralDirectionMaximumMagnitude = 4;
 
     public async Task<AlertRunResult> RunAsync(CancellationToken cancellationToken = default)
     {
@@ -31,7 +34,7 @@ public sealed class AlertEvaluator(
                 CreatedAlertCount = 0,
                 SentCount = 0,
                 FailedCount = 0,
-                Threshold = settings.Threshold,
+                Threshold = MinimumMarketImpactScore,
                 Recipient = string.Join(", ", recipients),
                 Message = "Alerts are disabled.",
                 CreatedAlertIds = []
@@ -43,7 +46,7 @@ public sealed class AlertEvaluator(
             .OrderBy(analysis => analysis.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        var belowThresholdCount = 0;
+        var ineligibleCount = 0;
         var duplicateCount = 0;
         var sentCount = 0;
         var failedCount = 0;
@@ -51,9 +54,9 @@ public sealed class AlertEvaluator(
 
         foreach (var analysis in analyses)
         {
-            if (analysis.MarketImpactScore < settings.Threshold)
+            if (!IsEligibleForAlert(analysis))
             {
-                belowThresholdCount++;
+                ineligibleCount++;
                 continue;
             }
 
@@ -83,7 +86,7 @@ public sealed class AlertEvaluator(
                     Recipient = recipientSettings.Recipient,
                     Subject = message.Subject,
                     Body = message.Body,
-                    Threshold = recipientSettings.Threshold,
+                    Threshold = MinimumMarketImpactScore,
                     SendStatus = SentStatus,
                     CreatedAt = DateTimeOffset.UtcNow
                 };
@@ -112,33 +115,41 @@ public sealed class AlertEvaluator(
             }
         }
 
-        var eligibleAnalysisCount = analyses.Count - belowThresholdCount;
-        var messageText = $"Created {createdAlertIds.Count} alerts, sent {sentCount}, skipped {belowThresholdCount} below threshold and {duplicateCount} duplicates.";
+        var eligibleAnalysisCount = analyses.Count - ineligibleCount;
+        var messageText = $"Created {createdAlertIds.Count} alerts, sent {sentCount}, skipped {ineligibleCount} ineligible analyses and {duplicateCount} duplicates. Criteria: market impact score > {MinimumMarketImpactScore}, confidence > {MinimumConfidenceScore}, direction outside -{NeutralDirectionMaximumMagnitude} to +{NeutralDirectionMaximumMagnitude}.";
         logger.LogInformation(
-            "Alert run completed. Evaluated: {EvaluatedAnalysisCount}. Eligible: {EligibleAnalysisCount}. Created: {CreatedAlertCount}. Sent: {SentCount}. Failed: {FailedCount}. Duplicates: {DuplicateCount}. Threshold: {Threshold}.",
+            "Alert run completed. Evaluated: {EvaluatedAnalysisCount}. Eligible: {EligibleAnalysisCount}. Created: {CreatedAlertCount}. Sent: {SentCount}. Failed: {FailedCount}. Duplicates: {DuplicateCount}. Criteria: score > {MinimumMarketImpactScore}, confidence > {MinimumConfidenceScore}, direction outside -{NeutralDirectionMaximumMagnitude} to +{NeutralDirectionMaximumMagnitude}.",
             analyses.Count,
             eligibleAnalysisCount,
             createdAlertIds.Count,
             sentCount,
             failedCount,
             duplicateCount,
-            settings.Threshold);
+            MinimumMarketImpactScore,
+            MinimumConfidenceScore,
+            NeutralDirectionMaximumMagnitude,
+            NeutralDirectionMaximumMagnitude);
 
         return new AlertRunResult
         {
             EvaluatedAnalysisCount = analyses.Count,
             EligibleAnalysisCount = eligibleAnalysisCount,
-            BelowThresholdCount = belowThresholdCount,
+            BelowThresholdCount = ineligibleCount,
             DuplicateCount = duplicateCount,
             CreatedAlertCount = createdAlertIds.Count,
             SentCount = sentCount,
             FailedCount = failedCount,
-            Threshold = settings.Threshold,
+            Threshold = MinimumMarketImpactScore,
             Recipient = string.Join(", ", recipients),
             Message = messageText,
             CreatedAlertIds = createdAlertIds
         };
     }
+
+    private static bool IsEligibleForAlert(PostAnalysis analysis) =>
+        analysis.MarketImpactScore > MinimumMarketImpactScore
+        && analysis.Confidence > MinimumConfidenceScore
+        && Math.Abs(analysis.Direction) > NeutralDirectionMaximumMagnitude;
 
     private static AlertSettings NormalizeSettings(AlertSettings settings)
     {

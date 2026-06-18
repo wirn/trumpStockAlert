@@ -46,11 +46,12 @@ public sealed class AlertEmailTemplateRendererTests
             analysis);
 
         Assert.Equal("recipient@example.com", message.Recipient);
-        Assert.Contains("score 84", message.Subject);
+        Assert.Equal("Trump fibblar med marknaden!", message.Subject);
         Assert.Contains("Market Impact Score: 84/100", message.Body);
         Assert.Contains("Direction: Bearish (-30 / -50)", message.Body);
         Assert.Contains("Direction range: -50 to +50", message.Body);
         Assert.Contains("Confidence: 92/100", message.Body);
+        Assert.Contains("Alert criteria: score > 60, confidence > 20, direction outside -4 to +4", message.Body);
         Assert.Contains("Affected assets: US equities, USD", message.Body);
         Assert.NotNull(message.HtmlBody);
         Assert.Contains("TrumpStockAlert", message.HtmlBody);
@@ -97,7 +98,7 @@ public sealed class AlertEmailTemplateRendererTests
             new AlertSettings { Recipient = "recipient@example.com" },
             analysis);
 
-        Assert.Contains("Neutral", message.Subject);
+        Assert.Equal("Trump fibblar med marknaden!", message.Subject);
         Assert.Contains("Direction: Neutral (0 / +/-50)", message.Body);
         Assert.Contains("Confidence: 50/100", message.Body);
         Assert.Contains("No AI reasoning was provided.", message.Body);

@@ -109,7 +109,7 @@ public sealed class AlertsControllerTests : IDisposable
 
         var message = Assert.Single(_emailSender.Messages);
         Assert.Equal("preview@example.com", message.Recipient);
-        Assert.Contains("score 84", message.Subject);
+        Assert.Equal("Trump fibblar med marknaden!", message.Subject);
         Assert.Contains("Market Impact Score: 84/100", message.Body);
         Assert.Contains("Direction: Bullish (+18 / +50)", message.Body);
         Assert.Contains("Direction range: -50 to +50", message.Body);
@@ -154,7 +154,7 @@ public sealed class AlertsControllerTests : IDisposable
     [Fact]
     public async Task RunAlerts_WithEligibleAnalysis_ReturnsOkAndCreatesListedAlert()
     {
-        await SeedAnalysisAsync(marketImpactScore: 90);
+        await SeedAnalysisAsync(marketImpactScore: 90, confidence: 80, direction: 25);
 
         var result = await _controller.RunAlerts(ValidKey, CancellationToken.None);
 
@@ -167,7 +167,7 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Equal(1, body.CreatedAlertCount);
         Assert.Equal(1, body.SentCount);
         Assert.Equal(0, body.FailedCount);
-        Assert.Equal(70, body.Threshold);
+        Assert.Equal(60, body.Threshold);
         Assert.Equal("log-only@trumpstockalert.local", body.Recipient);
 
         var listResult = await _controller.GetLatest(null, CancellationToken.None);
@@ -185,9 +185,59 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Contains("Test analysis reasoning.", alert.Body);
         Assert.Contains("Tariffs and market-moving comments.", alert.Body);
         Assert.Contains("View source post: https://truthsocial.com/@realDonaldTrump/posts/1", alert.Body);
-        Assert.Contains("Threshold: 70", alert.Body);
+        Assert.Contains("Alert criteria: score > 60, confidence > 20, direction outside -4 to +4", alert.Body);
         Assert.Contains("Post ID", alert.Body);
         Assert.Contains("Analysis ID", alert.Body);
+        Assert.Equal("Trump fibblar med marknaden!", alert.Subject);
+    }
+
+    [Theory]
+    [InlineData(61, 21, 5)]
+    [InlineData(90, 80, -12)]
+    public async Task RunAlerts_EligibleCompositeCriteria_CreatesAlert(
+        int marketImpactScore,
+        int confidence,
+        int direction)
+    {
+        var controller = CreateController(alertRecipient: "eligible@example.com");
+        await SeedAnalysisAsync(marketImpactScore, confidence, direction);
+
+        var result = await controller.RunAlerts(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AlertRunResponse>(ok.Value);
+        Assert.Equal(1, body.EligibleAnalysisCount);
+        Assert.Equal(0, body.BelowThresholdCount);
+        Assert.Equal(1, body.CreatedAlertCount);
+        Assert.Equal(1, body.SentCount);
+        Assert.Equal("Created 1 alerts, sent 1, skipped 0 ineligible analyses and 0 duplicates. Criteria: market impact score > 60, confidence > 20, direction outside -4 to +4.", body.Message);
+    }
+
+    [Theory]
+    [InlineData(60, 80, 20)]
+    [InlineData(80, 20, 20)]
+    [InlineData(90, 90, 0)]
+    [InlineData(90, 90, 4)]
+    [InlineData(90, 90, -4)]
+    public async Task RunAlerts_IneligibleCompositeCriteria_DoesNotCreateAlert(
+        int marketImpactScore,
+        int confidence,
+        int direction)
+    {
+        var controller = CreateController(alertRecipient: "ineligible@example.com");
+        await SeedAnalysisAsync(marketImpactScore, confidence, direction);
+
+        var result = await controller.RunAlerts(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AlertRunResponse>(ok.Value);
+        Assert.Equal(1, body.EvaluatedAnalysisCount);
+        Assert.Equal(0, body.EligibleAnalysisCount);
+        Assert.Equal(1, body.BelowThresholdCount);
+        Assert.Equal(0, body.CreatedAlertCount);
+        Assert.Equal(0, body.SentCount);
+        Assert.Equal("Created 0 alerts, sent 0, skipped 1 ineligible analyses and 0 duplicates. Criteria: market impact score > 60, confidence > 20, direction outside -4 to +4.", body.Message);
+        Assert.Equal(0, await _db.Alerts.CountAsync());
     }
 
     [Fact]
@@ -196,7 +246,7 @@ public sealed class AlertsControllerTests : IDisposable
         var controller = CreateController(
             alertRecipient: " first@example.com; second@example.com ",
             previewEnabled: true);
-        await SeedAnalysisAsync(marketImpactScore: 90);
+        await SeedAnalysisAsync(marketImpactScore: 90, confidence: 80, direction: 25);
 
         var firstRun = await controller.RunAlerts(ValidKey, CancellationToken.None);
         var secondRun = await controller.RunAlerts(ValidKey, CancellationToken.None);
@@ -226,7 +276,7 @@ public sealed class AlertsControllerTests : IDisposable
         var controller = CreateController(
             alertRecipient: "ignored@example.com",
             emailTo: "alpha@example.com,beta@example.com");
-        await SeedAnalysisAsync(marketImpactScore: 90);
+        await SeedAnalysisAsync(marketImpactScore: 90, confidence: 80, direction: 25);
 
         var result = await controller.RunAlerts(ValidKey, CancellationToken.None);
 
@@ -246,7 +296,7 @@ public sealed class AlertsControllerTests : IDisposable
     [Fact]
     public async Task RunAlerts_BelowThreshold_DoesNotCreateAlert()
     {
-        await SeedAnalysisAsync(marketImpactScore: 69);
+        await SeedAnalysisAsync(marketImpactScore: 60, confidence: 80, direction: 20);
 
         var result = await _controller.RunAlerts(ValidKey, CancellationToken.None);
 
@@ -255,6 +305,7 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Equal(1, body.EvaluatedAnalysisCount);
         Assert.Equal(0, body.EligibleAnalysisCount);
         Assert.Equal(1, body.BelowThresholdCount);
+        Assert.Contains("skipped 1 ineligible analyses", body.Message);
         Assert.Equal(0, body.CreatedAlertCount);
         Assert.Equal(0, body.SentCount);
         Assert.Equal(0, await _db.Alerts.CountAsync());
@@ -263,7 +314,7 @@ public sealed class AlertsControllerTests : IDisposable
     [Fact]
     public async Task RunAlerts_SecondRun_DedupesExistingAlert()
     {
-        await SeedAnalysisAsync(marketImpactScore: 90);
+        await SeedAnalysisAsync(marketImpactScore: 90, confidence: 80, direction: 25);
 
         await _controller.RunAlerts(ValidKey, CancellationToken.None);
         var result = await _controller.RunAlerts(ValidKey, CancellationToken.None);
@@ -278,7 +329,10 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Equal(1, await _db.Alerts.CountAsync());
     }
 
-    private async Task SeedAnalysisAsync(int marketImpactScore)
+    private async Task SeedAnalysisAsync(
+        int marketImpactScore,
+        int confidence = 80,
+        int direction = 25)
     {
         var now = DateTimeOffset.UtcNow;
         var post = new TruthPost
@@ -300,10 +354,10 @@ public sealed class AlertsControllerTests : IDisposable
         {
             PostId = post.Id,
             MarketImpactScore = marketImpactScore,
-            Direction = 25,
+            Direction = direction,
             Reasoning = "Test analysis reasoning.",
             AffectedAssetsJson = "[]",
-            Confidence = 80,
+            Confidence = confidence,
             AnalyzerVersion = "test",
             RawAiResponse = "{}",
             AnalyzedAt = now,
