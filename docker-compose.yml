@@ -21,6 +21,7 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-}
       Alerts__Recipient: ${EMAIL_TO:-log-only@trumpstockalert.local}
       AlertEmailPreview__Enabled: ${AlertEmailPreview__Enabled:-false}
+      AlertEmailPreview__Recipient: ${AlertEmailPreview__Recipient:-}
       Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-http://100.92.230.97:5173,http://localhost:5173,https://purple-meadow-0ecf2ac03.7.azurestaticapps.net}
       Collector__TruthSocialAccountId: ${TRUTH_SOCIAL_ACCOUNT_ID:-}
       Collector__MaxPosts: ${COLLECTOR_MAX_POSTS:-5}

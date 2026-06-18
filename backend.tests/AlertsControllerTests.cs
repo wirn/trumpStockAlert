@@ -126,7 +126,27 @@ public sealed class AlertsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task SendEmailPreview_MultipleRecipients_SendsOnePreviewPerRecipient()
+    public async Task SendEmailPreview_ConfiguredPreviewRecipient_SendsOnlyToPreviewRecipient()
+    {
+        var controller = CreateController(
+            alertRecipient: "first@example.com; second@example.com",
+            previewRecipient: "  me@example.com  ",
+            emailSender: _emailSender);
+
+        var result = await controller.SendEmailPreview(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AlertEmailPreviewResponse>(ok.Value);
+        Assert.Equal("me@example.com", body.Recipient);
+        Assert.Equal(["me@example.com"], body.Recipients);
+
+        var message = Assert.Single(_emailSender.Messages);
+        Assert.Equal("me@example.com", message.Recipient);
+        Assert.Equal("Trump fibblar med marknaden!", message.Subject);
+    }
+
+    [Fact]
+    public async Task SendEmailPreview_NoPreviewRecipient_FallsBackToNormalRecipients()
     {
         var controller = CreatePreviewController(
             previewEnabled: true,
@@ -294,6 +314,29 @@ public sealed class AlertsControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task RunAlerts_PreviewRecipientConfigured_StillUsesNormalRecipients()
+    {
+        var controller = CreateController(
+            alertRecipient: "first@example.com;second@example.com",
+            previewRecipient: "me@example.com");
+        await SeedAnalysisAsync(marketImpactScore: 90, confidence: 80, direction: 25);
+
+        var result = await controller.RunAlerts(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AlertRunResponse>(ok.Value);
+        Assert.Equal(2, body.CreatedAlertCount);
+        Assert.Equal("first@example.com, second@example.com", body.Recipient);
+
+        var recipients = await _db.Alerts
+            .AsNoTracking()
+            .OrderBy(alert => alert.Recipient)
+            .Select(alert => alert.Recipient)
+            .ToListAsync();
+        Assert.Equal(["first@example.com", "second@example.com"], recipients);
+    }
+
+    [Fact]
     public async Task RunAlerts_BelowThreshold_DoesNotCreateAlert()
     {
         await SeedAnalysisAsync(marketImpactScore: 60, confidence: 80, direction: 20);
@@ -378,6 +421,7 @@ public sealed class AlertsControllerTests : IDisposable
         string alertRecipient,
         bool previewEnabled = true,
         string? emailTo = null,
+        string? previewRecipient = null,
         IEmailSender? emailSender = null)
     {
         var configuration = new ConfigurationBuilder()
@@ -385,6 +429,7 @@ public sealed class AlertsControllerTests : IDisposable
             {
                 ["Scheduler:ApiKey"] = ValidKey,
                 ["AlertEmailPreview:Enabled"] = previewEnabled.ToString(),
+                ["AlertEmailPreview:Recipient"] = previewRecipient,
                 ["EMAIL_TO"] = emailTo
             })
             .Build();

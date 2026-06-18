@@ -25,6 +25,7 @@ public sealed class AlertsController(
     private const string SchedulerKeyHeaderName = "X-TrumpStockAlert-Scheduler-Key";
     private const string SchedulerApiKeyConfigName = "Scheduler:ApiKey";
     private const string EmailPreviewEnabledConfigName = "AlertEmailPreview:Enabled";
+    private const string EmailPreviewRecipientConfigName = "AlertEmailPreview:Recipient";
     private const int DefaultLimit = 50;
     private const int MaxLimit = 500;
 
@@ -94,7 +95,7 @@ public sealed class AlertsController(
 
         var startedAt = DateTimeOffset.UtcNow;
         var settings = NormalizeAlertSettings(alertOptions.Value);
-        var recipients = recipientResolver.Resolve(settings);
+        var recipients = ResolvePreviewRecipients(settings);
         var analysis = BuildPreviewAnalysis();
         var sentMessages = new List<AlertEmailMessage>();
 
@@ -197,6 +198,17 @@ public sealed class AlertsController(
                 ? "MarketImpact"
                 : settings.AlertType
         };
+    }
+
+    private IReadOnlyList<string> ResolvePreviewRecipients(AlertSettings settings)
+    {
+        var previewRecipient = configuration[EmailPreviewRecipientConfigName]?.Trim();
+        if (!string.IsNullOrWhiteSpace(previewRecipient))
+        {
+            return [previewRecipient];
+        }
+
+        return recipientResolver.Resolve(settings);
     }
 
     private static PostAnalysis BuildPreviewAnalysis()
