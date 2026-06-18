@@ -36,8 +36,9 @@ public sealed class AlertEmailTemplateRenderer
             "Real-time Truth Social Market Impact Analysis",
             string.Empty,
             $"Market Impact Score: {analysis.MarketImpactScore}/100",
-            $"Direction: {direction.Label} ({FormatSigned(analysis.Direction)})",
-            $"Confidence: {analysis.Confidence}%",
+            $"Direction: {direction.Label} ({FormatDirectionScale(analysis.Direction)})",
+            "Direction range: -50 to +50",
+            $"Confidence: {analysis.Confidence}/100",
             string.Empty,
             "AI reasoning:",
             ValueOrFallback(analysis.Reasoning, "No AI reasoning was provided."),
@@ -109,8 +110,8 @@ public sealed class AlertEmailTemplateRenderer
         builder.AppendLine($"<div style=\"font-size:48px;line-height:56px;font-weight:800;color:#111827;\">{analysis.MarketImpactScore}<span style=\"font-size:16px;line-height:20px;font-weight:400;color:#374151;\"> / 100</span></div>");
         builder.AppendLine("</td>");
         builder.AppendLine("<td align=\"right\" style=\"vertical-align:top;width:150px;\">");
-        builder.AppendLine($"<div style=\"display:inline-block;background-color:{direction.BadgeBackground};color:{direction.BadgeColor};border:1px solid {direction.BorderColor};border-radius:999px;padding:8px 12px;font-size:14px;line-height:18px;font-weight:700;\">{Encode(direction.Label)} {Encode(FormatSigned(analysis.Direction))}</div>");
-        builder.AppendLine($"<div style=\"padding-top:8px;font-size:13px;line-height:18px;color:#4b5563;\">{Encode(direction.SignalLabel)}</div>");
+        builder.AppendLine($"<div style=\"display:inline-block;background-color:{direction.BadgeBackground};color:{direction.BadgeColor};border:1px solid {direction.BorderColor};border-radius:999px;padding:8px 12px;font-size:14px;line-height:18px;font-weight:700;\">{Encode(direction.Label)} {Encode(FormatDirectionScale(analysis.Direction))}</div>");
+        builder.AppendLine("<div style=\"padding-top:8px;font-size:12px;line-height:17px;color:#4b5563;\">Direction range: -50 to +50</div>");
         builder.AppendLine("</td>");
         builder.AppendLine("</tr></table>");
         builder.AppendLine("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"border-collapse:collapse;margin-top:14px;\"><tr><td style=\"height:8px;background-color:#e5e7eb;border-radius:999px;line-height:8px;font-size:0;\"><div style=\"height:8px;width:" + scoreWidth + "%;background-color:" + direction.AccentColor + ";border-radius:999px;line-height:8px;font-size:0;\">&nbsp;</div></td></tr></table>");
@@ -120,7 +121,7 @@ public sealed class AlertEmailTemplateRenderer
         builder.AppendLine("<td align=\"right\" style=\"font-size:11px;line-height:16px;color:#4b5563;text-transform:uppercase;\">Bullish</td>");
         builder.AppendLine("</tr></table>");
         builder.AppendLine("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" style=\"border-collapse:collapse;margin-top:18px;border-top:1px solid #d1d5db;\"><tr>");
-        builder.AppendLine("<td style=\"padding-top:14px;width:50%;font-size:11px;line-height:16px;color:#6b7280;text-transform:uppercase;\">Confidence<br><span style=\"font-size:22px;line-height:28px;font-weight:700;color:#111827;text-transform:none;\">" + confidence + "%</span></td>");
+        builder.AppendLine("<td style=\"padding-top:14px;width:50%;font-size:11px;line-height:16px;color:#6b7280;text-transform:uppercase;\">Confidence<br><span style=\"font-size:22px;line-height:28px;font-weight:700;color:#111827;text-transform:none;\">" + confidence + " / 100</span></td>");
         builder.AppendLine("<td style=\"padding-top:14px;width:50%;font-size:11px;line-height:16px;color:#6b7280;text-transform:uppercase;border-left:1px solid #d1d5db;padding-left:18px;\">Analyzed<br><span style=\"font-size:14px;line-height:22px;font-weight:700;color:#111827;text-transform:none;\">" + Encode(FormatTimestamp(analysis.AnalyzedAt)) + "</span></td>");
         builder.AppendLine("</tr></table>");
         builder.AppendLine("</td></tr></table>");
@@ -247,6 +248,21 @@ public sealed class AlertEmailTemplateRenderer
 
     private static string FormatSigned(int value) =>
         value > 0 ? $"+{value}" : value.ToString();
+
+    private static string FormatDirectionScale(int value)
+    {
+        if (value > 0)
+        {
+            return $"{FormatSigned(value)} / +50";
+        }
+
+        if (value < 0)
+        {
+            return $"{value} / -50";
+        }
+
+        return "0 / +/-50";
+    }
 
     private static string ValueOrFallback(string? value, string fallback) =>
         string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();

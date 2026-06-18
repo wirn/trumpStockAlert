@@ -111,15 +111,18 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Equal("preview@example.com", message.Recipient);
         Assert.Contains("score 84", message.Subject);
         Assert.Contains("Market Impact Score: 84/100", message.Body);
-        Assert.Contains("Direction: Bullish (+18)", message.Body);
-        Assert.Contains("Confidence: 83%", message.Body);
+        Assert.Contains("Direction: Bullish (+18 / +50)", message.Body);
+        Assert.Contains("Direction range: -50 to +50", message.Body);
+        Assert.Contains("Confidence: 83/100", message.Body);
         Assert.Contains("Iran", message.Body);
         Assert.Contains("Strait of Hormuz", message.Body);
         Assert.Contains("Crude oil", message.Body);
         Assert.NotNull(message.HtmlBody);
         Assert.Contains("TrumpStockAlert", message.HtmlBody);
         Assert.Contains("Real-time Truth Social", message.HtmlBody);
-        Assert.Contains("Bullish", message.HtmlBody);
+        Assert.Contains("Bullish &#x2B;18 / &#x2B;50", message.HtmlBody);
+        Assert.Contains("Direction range: -50 to +50", message.HtmlBody);
+        Assert.Contains("83 / 100", message.HtmlBody);
     }
 
     [Fact]
@@ -176,8 +179,9 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Equal(body.CreatedAlertIds.Single(), alert.Id);
         Assert.Contains("TrumpStockAlert", alert.Body);
         Assert.Contains("Market Impact Score: 90/100", alert.Body);
-        Assert.Contains("Direction: Bullish (+25)", alert.Body);
-        Assert.Contains("Confidence: 80%", alert.Body);
+        Assert.Contains("Direction: Bullish (+25 / +50)", alert.Body);
+        Assert.Contains("Direction range: -50 to +50", alert.Body);
+        Assert.Contains("Confidence: 80/100", alert.Body);
         Assert.Contains("Test analysis reasoning.", alert.Body);
         Assert.Contains("Tariffs and market-moving comments.", alert.Body);
         Assert.Contains("View source post: https://truthsocial.com/@realDonaldTrump/posts/1", alert.Body);

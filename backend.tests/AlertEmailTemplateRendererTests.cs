@@ -48,12 +48,16 @@ public sealed class AlertEmailTemplateRendererTests
         Assert.Equal("recipient@example.com", message.Recipient);
         Assert.Contains("score 84", message.Subject);
         Assert.Contains("Market Impact Score: 84/100", message.Body);
-        Assert.Contains("Direction: Bearish (-30)", message.Body);
+        Assert.Contains("Direction: Bearish (-30 / -50)", message.Body);
+        Assert.Contains("Direction range: -50 to +50", message.Body);
+        Assert.Contains("Confidence: 92/100", message.Body);
         Assert.Contains("Affected assets: US equities, USD", message.Body);
         Assert.NotNull(message.HtmlBody);
         Assert.Contains("TrumpStockAlert", message.HtmlBody);
         Assert.Contains("Real-time Truth Social", message.HtmlBody);
-        Assert.Contains("Bearish", message.HtmlBody);
+        Assert.Contains("Bearish -30 / -50", message.HtmlBody);
+        Assert.Contains("Direction range: -50 to +50", message.HtmlBody);
+        Assert.Contains("92 / 100", message.HtmlBody);
         Assert.Contains("Tariffs &lt;markets&gt; &amp; manufacturing.", message.HtmlBody);
         Assert.Contains("US equities", message.HtmlBody);
         Assert.Contains("https://truthsocial.com/@realDonaldTrump/posts/abc", message.HtmlBody);
@@ -94,10 +98,14 @@ public sealed class AlertEmailTemplateRendererTests
             analysis);
 
         Assert.Contains("Neutral", message.Subject);
+        Assert.Contains("Direction: Neutral (0 / +/-50)", message.Body);
+        Assert.Contains("Confidence: 50/100", message.Body);
         Assert.Contains("No AI reasoning was provided.", message.Body);
         Assert.Contains("Original post text is unavailable.", message.Body);
         Assert.DoesNotContain("View source post:", message.Body);
         Assert.DoesNotContain("View Full Source", message.HtmlBody);
+        Assert.Contains("0 / &#x2B;/-50", message.HtmlBody);
+        Assert.Contains("50 / 100", message.HtmlBody);
         Assert.Contains("Unavailable", message.HtmlBody);
     }
 }
