@@ -45,6 +45,7 @@ public sealed class AlertsControllerTests : IDisposable
             }),
             new LogOnlyEmailSender(NullLogger<LogOnlyEmailSender>.Instance),
             new AlertEmailTemplateRenderer(),
+            new AlertRecipientResolver(configuration),
             NullLogger<AlertEvaluator>.Instance);
 
         _controller = new AlertsController(
@@ -58,6 +59,7 @@ public sealed class AlertsControllerTests : IDisposable
                 AlertType = "MarketImpact"
             }),
             new AlertEmailTemplateRenderer(),
+            new AlertRecipientResolver(configuration),
             _emailSender,
             configuration,
             NullLogger<AlertsController>.Instance);
@@ -81,7 +83,7 @@ public sealed class AlertsControllerTests : IDisposable
         var result = await controller.SendEmailPreview(ValidKey, CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(result.Result);
-        Assert.Null(_emailSender.Message);
+        Assert.Empty(_emailSender.Messages);
     }
 
     [Fact]
@@ -90,7 +92,7 @@ public sealed class AlertsControllerTests : IDisposable
         var result = await _controller.SendEmailPreview(null, CancellationToken.None);
 
         Assert.IsType<UnauthorizedResult>(result.Result);
-        Assert.Null(_emailSender.Message);
+        Assert.Empty(_emailSender.Messages);
     }
 
     [Fact]
@@ -101,10 +103,11 @@ public sealed class AlertsControllerTests : IDisposable
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var body = Assert.IsType<AlertEmailPreviewResponse>(ok.Value);
         Assert.Equal("preview@example.com", body.Recipient);
+        Assert.Equal(["preview@example.com"], body.Recipients);
         Assert.True(body.HtmlBodyPresent);
         Assert.Equal("Alert email preview sent.", body.Message);
 
-        var message = Assert.IsType<AlertEmailMessage>(_emailSender.Message);
+        var message = Assert.Single(_emailSender.Messages);
         Assert.Equal("preview@example.com", message.Recipient);
         Assert.Contains("score 84", message.Subject);
         Assert.Contains("Market Impact Score: 84/100", message.Body);
@@ -117,6 +120,32 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Contains("TrumpStockAlert", message.HtmlBody);
         Assert.Contains("Real-time Truth Social", message.HtmlBody);
         Assert.Contains("Bullish", message.HtmlBody);
+    }
+
+    [Fact]
+    public async Task SendEmailPreview_MultipleRecipients_SendsOnePreviewPerRecipient()
+    {
+        var controller = CreatePreviewController(
+            previewEnabled: true,
+            recipient: " first@example.com; second@example.com,  ; third@example.com ");
+
+        var result = await controller.SendEmailPreview(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AlertEmailPreviewResponse>(ok.Value);
+        Assert.Equal(
+            ["first@example.com", "second@example.com", "third@example.com"],
+            body.Recipients);
+        Assert.True(body.HtmlBodyPresent);
+        Assert.Equal(3, _emailSender.Messages.Count);
+        Assert.Equal(
+            ["first@example.com", "second@example.com", "third@example.com"],
+            _emailSender.Messages.Select(message => message.Recipient).ToArray());
+        Assert.All(_emailSender.Messages, message =>
+        {
+            Assert.Contains("Market Impact Score: 84/100", message.Body);
+            Assert.NotNull(message.HtmlBody);
+        });
     }
 
     [Fact]
@@ -155,6 +184,59 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Contains("Threshold: 70", alert.Body);
         Assert.Contains("Post ID", alert.Body);
         Assert.Contains("Analysis ID", alert.Body);
+    }
+
+    [Fact]
+    public async Task RunAlerts_MultipleRecipients_CreatesAlertPerRecipientAndDedupesPerRecipient()
+    {
+        var controller = CreateController(
+            alertRecipient: " first@example.com; second@example.com ",
+            previewEnabled: true);
+        await SeedAnalysisAsync(marketImpactScore: 90);
+
+        var firstRun = await controller.RunAlerts(ValidKey, CancellationToken.None);
+        var secondRun = await controller.RunAlerts(ValidKey, CancellationToken.None);
+
+        var firstOk = Assert.IsType<OkObjectResult>(firstRun.Result);
+        var firstBody = Assert.IsType<AlertRunResponse>(firstOk.Value);
+        Assert.Equal(2, firstBody.CreatedAlertCount);
+        Assert.Equal(2, firstBody.SentCount);
+        Assert.Equal("first@example.com, second@example.com", firstBody.Recipient);
+
+        var secondOk = Assert.IsType<OkObjectResult>(secondRun.Result);
+        var secondBody = Assert.IsType<AlertRunResponse>(secondOk.Value);
+        Assert.Equal(2, secondBody.DuplicateCount);
+        Assert.Equal(0, secondBody.CreatedAlertCount);
+
+        var alerts = await _db.Alerts
+            .AsNoTracking()
+            .OrderBy(alert => alert.Recipient)
+            .ToListAsync();
+        Assert.Equal(2, alerts.Count);
+        Assert.Equal(["first@example.com", "second@example.com"], alerts.Select(alert => alert.Recipient).ToArray());
+    }
+
+    [Fact]
+    public async Task RunAlerts_EmailToConfiguration_SendsToMultipleRecipients()
+    {
+        var controller = CreateController(
+            alertRecipient: "ignored@example.com",
+            emailTo: "alpha@example.com,beta@example.com");
+        await SeedAnalysisAsync(marketImpactScore: 90);
+
+        var result = await controller.RunAlerts(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AlertRunResponse>(ok.Value);
+        Assert.Equal(2, body.CreatedAlertCount);
+        Assert.Equal("alpha@example.com, beta@example.com", body.Recipient);
+
+        var recipients = await _db.Alerts
+            .AsNoTracking()
+            .OrderBy(alert => alert.Recipient)
+            .Select(alert => alert.Recipient)
+            .ToListAsync();
+        Assert.Equal(["alpha@example.com", "beta@example.com"], recipients);
     }
 
     [Fact]
@@ -226,13 +308,26 @@ public sealed class AlertsControllerTests : IDisposable
         await _db.SaveChangesAsync();
     }
 
-    private AlertsController CreatePreviewController(bool previewEnabled)
+    private AlertsController CreatePreviewController(
+        bool previewEnabled,
+        string recipient = "preview@example.com") =>
+        CreateController(
+            alertRecipient: recipient,
+            previewEnabled: previewEnabled,
+            emailSender: _emailSender);
+
+    private AlertsController CreateController(
+        string alertRecipient,
+        bool previewEnabled = true,
+        string? emailTo = null,
+        IEmailSender? emailSender = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Scheduler:ApiKey"] = ValidKey,
-                ["AlertEmailPreview:Enabled"] = previewEnabled.ToString()
+                ["AlertEmailPreview:Enabled"] = previewEnabled.ToString(),
+                ["EMAIL_TO"] = emailTo
             })
             .Build();
 
@@ -242,11 +337,12 @@ public sealed class AlertsControllerTests : IDisposable
             {
                 Enabled = true,
                 Threshold = 70,
-                Recipient = "log-only@trumpstockalert.local",
+                Recipient = alertRecipient,
                 AlertType = "MarketImpact"
             }),
             new LogOnlyEmailSender(NullLogger<LogOnlyEmailSender>.Instance),
             new AlertEmailTemplateRenderer(),
+            new AlertRecipientResolver(configuration),
             NullLogger<AlertEvaluator>.Instance);
 
         return new AlertsController(
@@ -256,22 +352,23 @@ public sealed class AlertsControllerTests : IDisposable
             {
                 Enabled = true,
                 Threshold = 70,
-                Recipient = "preview@example.com",
+                Recipient = alertRecipient,
                 AlertType = "MarketImpact"
             }),
             new AlertEmailTemplateRenderer(),
-            _emailSender,
+            new AlertRecipientResolver(configuration),
+            emailSender ?? new LogOnlyEmailSender(NullLogger<LogOnlyEmailSender>.Instance),
             configuration,
             NullLogger<AlertsController>.Instance);
     }
 
     private sealed class CapturingEmailSender : IEmailSender
     {
-        public AlertEmailMessage? Message { get; private set; }
+        public List<AlertEmailMessage> Messages { get; } = [];
 
         public Task SendAsync(AlertEmailMessage message, CancellationToken cancellationToken = default)
         {
-            Message = message;
+            Messages.Add(message);
             return Task.CompletedTask;
         }
     }

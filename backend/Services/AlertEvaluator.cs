@@ -10,6 +10,7 @@ public sealed class AlertEvaluator(
     IOptions<AlertSettings> options,
     IEmailSender emailSender,
     AlertEmailTemplateRenderer emailTemplateRenderer,
+    AlertRecipientResolver recipientResolver,
     ILogger<AlertEvaluator> logger) : IAlertEvaluator
 {
     private const string SentStatus = "Sent";
@@ -18,6 +19,7 @@ public sealed class AlertEvaluator(
     public async Task<AlertRunResult> RunAsync(CancellationToken cancellationToken = default)
     {
         var settings = NormalizeSettings(options.Value);
+        var recipients = recipientResolver.Resolve(settings);
         if (!settings.Enabled)
         {
             return new AlertRunResult
@@ -30,7 +32,7 @@ public sealed class AlertEvaluator(
                 SentCount = 0,
                 FailedCount = 0,
                 Threshold = settings.Threshold,
-                Recipient = settings.Recipient,
+                Recipient = string.Join(", ", recipients),
                 Message = "Alerts are disabled.",
                 CreatedAlertIds = []
             };
@@ -55,54 +57,59 @@ public sealed class AlertEvaluator(
                 continue;
             }
 
-            var isDuplicate = await dbContext.Alerts
-                .AsNoTracking()
-                .AnyAsync(alert =>
-                    alert.PostAnalysisId == analysis.Id
-                    && alert.AlertType == settings.AlertType
-                    && alert.Recipient == settings.Recipient,
-                    cancellationToken);
-
-            if (isDuplicate)
+            foreach (var recipient in recipients)
             {
-                duplicateCount++;
-                continue;
+                var recipientSettings = settings with { Recipient = recipient };
+                var isDuplicate = await dbContext.Alerts
+                    .AsNoTracking()
+                    .AnyAsync(alert =>
+                        alert.PostAnalysisId == analysis.Id
+                        && alert.AlertType == recipientSettings.AlertType
+                        && alert.Recipient == recipientSettings.Recipient,
+                        cancellationToken);
+
+                if (isDuplicate)
+                {
+                    duplicateCount++;
+                    continue;
+                }
+
+                var message = emailTemplateRenderer.Render(recipientSettings, analysis);
+                var alert = new Alert
+                {
+                    PostId = analysis.PostId,
+                    PostAnalysisId = analysis.Id,
+                    AlertType = recipientSettings.AlertType,
+                    Recipient = recipientSettings.Recipient,
+                    Subject = message.Subject,
+                    Body = message.Body,
+                    Threshold = recipientSettings.Threshold,
+                    SendStatus = SentStatus,
+                    CreatedAt = DateTimeOffset.UtcNow
+                };
+
+                try
+                {
+                    await emailSender.SendAsync(message, cancellationToken);
+                    alert.SentAt = DateTimeOffset.UtcNow;
+                    sentCount++;
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    alert.SendStatus = FailedStatus;
+                    alert.ErrorMessage = exception.Message;
+                    failedCount++;
+                    logger.LogError(
+                        exception,
+                        "Failed to send alert for analysis {AnalysisId} to recipient {Recipient}.",
+                        analysis.Id,
+                        recipientSettings.Recipient);
+                }
+
+                dbContext.Alerts.Add(alert);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                createdAlertIds.Add(alert.Id);
             }
-
-            var message = emailTemplateRenderer.Render(settings, analysis);
-            var alert = new Alert
-            {
-                PostId = analysis.PostId,
-                PostAnalysisId = analysis.Id,
-                AlertType = settings.AlertType,
-                Recipient = settings.Recipient,
-                Subject = message.Subject,
-                Body = message.Body,
-                Threshold = settings.Threshold,
-                SendStatus = SentStatus,
-                CreatedAt = DateTimeOffset.UtcNow
-            };
-
-            try
-            {
-                await emailSender.SendAsync(message, cancellationToken);
-                alert.SentAt = DateTimeOffset.UtcNow;
-                sentCount++;
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                alert.SendStatus = FailedStatus;
-                alert.ErrorMessage = exception.Message;
-                failedCount++;
-                logger.LogError(
-                    exception,
-                    "Failed to send alert for analysis {AnalysisId}.",
-                    analysis.Id);
-            }
-
-            dbContext.Alerts.Add(alert);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            createdAlertIds.Add(alert.Id);
         }
 
         var eligibleAnalysisCount = analyses.Count - belowThresholdCount;
@@ -127,7 +134,7 @@ public sealed class AlertEvaluator(
             SentCount = sentCount,
             FailedCount = failedCount,
             Threshold = settings.Threshold,
-            Recipient = settings.Recipient,
+            Recipient = string.Join(", ", recipients),
             Message = messageText,
             CreatedAlertIds = createdAlertIds
         };
@@ -139,9 +146,7 @@ public sealed class AlertEvaluator(
         {
             Enabled = settings.Enabled,
             Threshold = Math.Clamp(settings.Threshold, 1, 100),
-            Recipient = string.IsNullOrWhiteSpace(settings.Recipient)
-                ? "log-only@trumpstockalert.local"
-                : settings.Recipient,
+            Recipient = settings.Recipient,
             AlertType = string.IsNullOrWhiteSpace(settings.AlertType)
                 ? "MarketImpact"
                 : settings.AlertType

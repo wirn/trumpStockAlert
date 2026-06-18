@@ -10,6 +10,8 @@ public sealed class AlertEmailPreviewResponse
 
     public required string Recipient { get; init; }
 
+    public required IReadOnlyList<string> Recipients { get; init; }
+
     public required string Subject { get; init; }
 
     public required bool HtmlBodyPresent { get; init; }

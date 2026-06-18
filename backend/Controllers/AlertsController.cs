@@ -17,6 +17,7 @@ public sealed class AlertsController(
     IAlertEvaluator alertEvaluator,
     IOptions<AlertSettings> alertOptions,
     AlertEmailTemplateRenderer emailTemplateRenderer,
+    AlertRecipientResolver recipientResolver,
     IEmailSender emailSender,
     IConfiguration configuration,
     ILogger<AlertsController> logger) : ControllerBase
@@ -93,27 +94,36 @@ public sealed class AlertsController(
 
         var startedAt = DateTimeOffset.UtcNow;
         var settings = NormalizeAlertSettings(alertOptions.Value);
+        var recipients = recipientResolver.Resolve(settings);
         var analysis = BuildPreviewAnalysis();
-        var message = emailTemplateRenderer.Render(settings, analysis);
-
-        logger.LogInformation(
-            "Sending alert email preview. Recipient: {Recipient}. Subject: {Subject}. HtmlBodyPresent: {HtmlBodyPresent}.",
-            message.Recipient,
-            message.Subject,
-            !string.IsNullOrWhiteSpace(message.HtmlBody));
+        var sentMessages = new List<AlertEmailMessage>();
 
         try
         {
-            await emailSender.SendAsync(message, cancellationToken);
+            foreach (var recipient in recipients)
+            {
+                var recipientSettings = settings with { Recipient = recipient };
+                var message = emailTemplateRenderer.Render(recipientSettings, analysis);
+                logger.LogInformation(
+                    "Sending alert email preview. Recipient: {Recipient}. Subject: {Subject}. HtmlBodyPresent: {HtmlBodyPresent}.",
+                    message.Recipient,
+                    message.Subject,
+                    !string.IsNullOrWhiteSpace(message.HtmlBody));
+
+                await emailSender.SendAsync(message, cancellationToken);
+                sentMessages.Add(message);
+            }
+
             var finishedAt = DateTimeOffset.UtcNow;
             return Ok(new AlertEmailPreviewResponse
             {
                 StartedAt = startedAt,
                 FinishedAt = finishedAt,
                 DurationMs = (long)(finishedAt - startedAt).TotalMilliseconds,
-                Recipient = message.Recipient,
-                Subject = message.Subject,
-                HtmlBodyPresent = !string.IsNullOrWhiteSpace(message.HtmlBody),
+                Recipient = string.Join(", ", recipients),
+                Recipients = recipients,
+                Subject = sentMessages.First().Subject,
+                HtmlBodyPresent = sentMessages.All(message => !string.IsNullOrWhiteSpace(message.HtmlBody)),
                 Message = "Alert email preview sent."
             });
         }
@@ -121,10 +131,8 @@ public sealed class AlertsController(
         {
             logger.LogError(
                 exception,
-                "Alert email preview failed. Recipient: {Recipient}. Subject: {Subject}. HtmlBodyPresent: {HtmlBodyPresent}.",
-                message.Recipient,
-                message.Subject,
-                !string.IsNullOrWhiteSpace(message.HtmlBody));
+                "Alert email preview failed. Recipients: {Recipients}.",
+                string.Join(", ", recipients));
 
             return Problem(
                 title: "Alert email preview failed.",
@@ -184,9 +192,7 @@ public sealed class AlertsController(
         {
             Enabled = settings.Enabled,
             Threshold = 70,
-            Recipient = string.IsNullOrWhiteSpace(settings.Recipient)
-                ? "log-only@trumpstockalert.local"
-                : settings.Recipient,
+            Recipient = settings.Recipient,
             AlertType = string.IsNullOrWhiteSpace(settings.AlertType)
                 ? "MarketImpact"
                 : settings.AlertType

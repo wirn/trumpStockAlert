@@ -54,6 +54,7 @@ builder.Services.AddScoped<ICollectorRunner, CollectorRunner>();
 builder.Services.AddScoped<IFetcherRunService, FetcherRunService>();
 builder.Services.Configure<AlertSettings>(builder.Configuration.GetSection(AlertSettings.SectionName));
 builder.Services.AddSingleton<AlertEmailTemplateRenderer>();
+builder.Services.AddSingleton<AlertRecipientResolver>();
 builder.Services.AddScoped<IAlertEvaluator, AlertEvaluator>();
 builder.Services.AddScoped<LogOnlyEmailSender>();
 builder.Services.AddHttpClient<SendGridEmailSender>(client =>

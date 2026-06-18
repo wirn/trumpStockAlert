@@ -1,6 +1,6 @@
 namespace TrumpStockAlert.Api.Services;
 
-public sealed class AlertSettings
+public sealed record AlertSettings
 {
     public const string SectionName = "Alerts";
 
