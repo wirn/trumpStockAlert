@@ -17,6 +17,7 @@ public sealed class AlertsControllerTests : IDisposable
 
     private readonly AppDbContext _db;
     private readonly AlertsController _controller;
+    private readonly CapturingEmailSender _emailSender = new();
 
     public AlertsControllerTests()
     {
@@ -28,7 +29,8 @@ public sealed class AlertsControllerTests : IDisposable
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Scheduler:ApiKey"] = ValidKey
+                ["Scheduler:ApiKey"] = ValidKey,
+                ["AlertEmailPreview:Enabled"] = "true"
             })
             .Build();
 
@@ -48,6 +50,15 @@ public sealed class AlertsControllerTests : IDisposable
         _controller = new AlertsController(
             _db,
             evaluator,
+            Options.Create(new AlertSettings
+            {
+                Enabled = true,
+                Threshold = 70,
+                Recipient = "preview@example.com",
+                AlertType = "MarketImpact"
+            }),
+            new AlertEmailTemplateRenderer(),
+            _emailSender,
             configuration,
             NullLogger<AlertsController>.Instance);
     }
@@ -60,6 +71,52 @@ public sealed class AlertsControllerTests : IDisposable
         var result = await _controller.RunAlerts(null, CancellationToken.None);
 
         Assert.IsType<UnauthorizedResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task SendEmailPreview_Disabled_Returns404WithoutSending()
+    {
+        var controller = CreatePreviewController(previewEnabled: false);
+
+        var result = await controller.SendEmailPreview(ValidKey, CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(result.Result);
+        Assert.Null(_emailSender.Message);
+    }
+
+    [Fact]
+    public async Task SendEmailPreview_MissingKey_Returns401WithoutSending()
+    {
+        var result = await _controller.SendEmailPreview(null, CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(result.Result);
+        Assert.Null(_emailSender.Message);
+    }
+
+    [Fact]
+    public async Task SendEmailPreview_WithValidKey_SendsHtmlAndPlainTextPreview()
+    {
+        var result = await _controller.SendEmailPreview(ValidKey, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AlertEmailPreviewResponse>(ok.Value);
+        Assert.Equal("preview@example.com", body.Recipient);
+        Assert.True(body.HtmlBodyPresent);
+        Assert.Equal("Alert email preview sent.", body.Message);
+
+        var message = Assert.IsType<AlertEmailMessage>(_emailSender.Message);
+        Assert.Equal("preview@example.com", message.Recipient);
+        Assert.Contains("score 84", message.Subject);
+        Assert.Contains("Market Impact Score: 84/100", message.Body);
+        Assert.Contains("Direction: Bullish (+18)", message.Body);
+        Assert.Contains("Confidence: 83%", message.Body);
+        Assert.Contains("Iran", message.Body);
+        Assert.Contains("Strait of Hormuz", message.Body);
+        Assert.Contains("Crude oil", message.Body);
+        Assert.NotNull(message.HtmlBody);
+        Assert.Contains("TrumpStockAlert", message.HtmlBody);
+        Assert.Contains("Real-time Truth Social", message.HtmlBody);
+        Assert.Contains("Bullish", message.HtmlBody);
     }
 
     [Fact]
@@ -167,5 +224,55 @@ public sealed class AlertsControllerTests : IDisposable
             CreatedAt = now
         });
         await _db.SaveChangesAsync();
+    }
+
+    private AlertsController CreatePreviewController(bool previewEnabled)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Scheduler:ApiKey"] = ValidKey,
+                ["AlertEmailPreview:Enabled"] = previewEnabled.ToString()
+            })
+            .Build();
+
+        var evaluator = new AlertEvaluator(
+            _db,
+            Options.Create(new AlertSettings
+            {
+                Enabled = true,
+                Threshold = 70,
+                Recipient = "log-only@trumpstockalert.local",
+                AlertType = "MarketImpact"
+            }),
+            new LogOnlyEmailSender(NullLogger<LogOnlyEmailSender>.Instance),
+            new AlertEmailTemplateRenderer(),
+            NullLogger<AlertEvaluator>.Instance);
+
+        return new AlertsController(
+            _db,
+            evaluator,
+            Options.Create(new AlertSettings
+            {
+                Enabled = true,
+                Threshold = 70,
+                Recipient = "preview@example.com",
+                AlertType = "MarketImpact"
+            }),
+            new AlertEmailTemplateRenderer(),
+            _emailSender,
+            configuration,
+            NullLogger<AlertsController>.Instance);
+    }
+
+    private sealed class CapturingEmailSender : IEmailSender
+    {
+        public AlertEmailMessage? Message { get; private set; }
+
+        public Task SendAsync(AlertEmailMessage message, CancellationToken cancellationToken = default)
+        {
+            Message = message;
+            return Task.CompletedTask;
+        }
     }
 }

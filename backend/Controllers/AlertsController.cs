@@ -2,8 +2,10 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TrumpStockAlert.Api.Data;
 using TrumpStockAlert.Api.DTOs;
+using TrumpStockAlert.Api.Models;
 using TrumpStockAlert.Api.Services;
 
 namespace TrumpStockAlert.Api.Controllers;
@@ -13,11 +15,15 @@ namespace TrumpStockAlert.Api.Controllers;
 public sealed class AlertsController(
     AppDbContext dbContext,
     IAlertEvaluator alertEvaluator,
+    IOptions<AlertSettings> alertOptions,
+    AlertEmailTemplateRenderer emailTemplateRenderer,
+    IEmailSender emailSender,
     IConfiguration configuration,
     ILogger<AlertsController> logger) : ControllerBase
 {
     private const string SchedulerKeyHeaderName = "X-TrumpStockAlert-Scheduler-Key";
     private const string SchedulerApiKeyConfigName = "Scheduler:ApiKey";
+    private const string EmailPreviewEnabledConfigName = "AlertEmailPreview:Enabled";
     private const int DefaultLimit = 50;
     private const int MaxLimit = 500;
 
@@ -54,6 +60,74 @@ public sealed class AlertsController(
             logger.LogError(exception, "Alert run failed.");
             return Problem(
                 title: "Alert run failed.",
+                detail: exception.Message,
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
+    /// Sends a protected sample alert email for validating the HTML email layout.
+    /// </summary>
+    /// <remarks>
+    /// Requires the <c>X-TrumpStockAlert-Scheduler-Key</c> header and <c>AlertEmailPreview:Enabled=true</c>.
+    /// Does not create alert records.
+    /// </remarks>
+    [HttpPost("email-preview")]
+    [ProducesResponseType(typeof(AlertEmailPreviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AlertEmailPreviewResponse>> SendEmailPreview(
+        [FromHeader(Name = SchedulerKeyHeaderName)] string? schedulerKey,
+        CancellationToken cancellationToken)
+    {
+        if (!configuration.GetValue<bool>(EmailPreviewEnabledConfigName))
+        {
+            return NotFound();
+        }
+
+        if (!AuthorizeRequest(schedulerKey))
+        {
+            return Unauthorized();
+        }
+
+        var startedAt = DateTimeOffset.UtcNow;
+        var settings = NormalizeAlertSettings(alertOptions.Value);
+        var analysis = BuildPreviewAnalysis();
+        var message = emailTemplateRenderer.Render(settings, analysis);
+
+        logger.LogInformation(
+            "Sending alert email preview. Recipient: {Recipient}. Subject: {Subject}. HtmlBodyPresent: {HtmlBodyPresent}.",
+            message.Recipient,
+            message.Subject,
+            !string.IsNullOrWhiteSpace(message.HtmlBody));
+
+        try
+        {
+            await emailSender.SendAsync(message, cancellationToken);
+            var finishedAt = DateTimeOffset.UtcNow;
+            return Ok(new AlertEmailPreviewResponse
+            {
+                StartedAt = startedAt,
+                FinishedAt = finishedAt,
+                DurationMs = (long)(finishedAt - startedAt).TotalMilliseconds,
+                Recipient = message.Recipient,
+                Subject = message.Subject,
+                HtmlBodyPresent = !string.IsNullOrWhiteSpace(message.HtmlBody),
+                Message = "Alert email preview sent."
+            });
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogError(
+                exception,
+                "Alert email preview failed. Recipient: {Recipient}. Subject: {Subject}. HtmlBodyPresent: {HtmlBodyPresent}.",
+                message.Recipient,
+                message.Subject,
+                !string.IsNullOrWhiteSpace(message.HtmlBody));
+
+            return Problem(
+                title: "Alert email preview failed.",
                 detail: exception.Message,
                 statusCode: StatusCodes.Status500InternalServerError);
         }
@@ -102,5 +176,54 @@ public sealed class AlertsController(
         var providedBytes = Encoding.UTF8.GetBytes(apiKey);
         return configuredBytes.Length == providedBytes.Length
             && CryptographicOperations.FixedTimeEquals(configuredBytes, providedBytes);
+    }
+
+    private static AlertSettings NormalizeAlertSettings(AlertSettings settings)
+    {
+        return new AlertSettings
+        {
+            Enabled = settings.Enabled,
+            Threshold = 70,
+            Recipient = string.IsNullOrWhiteSpace(settings.Recipient)
+                ? "log-only@trumpstockalert.local"
+                : settings.Recipient,
+            AlertType = string.IsNullOrWhiteSpace(settings.AlertType)
+                ? "MarketImpact"
+                : settings.AlertType
+        };
+    }
+
+    private static PostAnalysis BuildPreviewAnalysis()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var postCreatedAt = now.AddMinutes(-6);
+        var post = new TruthPost
+        {
+            Id = 0,
+            Source = "truth_social",
+            Author = "realDonaldTrump",
+            ExternalId = "email-preview-sample",
+            Url = "https://truthsocial.com/@realDonaldTrump/posts/email-preview-sample",
+            Content = "Iran must not close the Strait of Hormuz. The world needs stable energy prices, and the United States will protect freedom of navigation and keep our markets strong.",
+            CreatedAt = postCreatedAt,
+            CollectedAt = now,
+            SavedAtUtc = now
+        };
+
+        return new PostAnalysis
+        {
+            Id = 0,
+            PostId = 0,
+            Post = post,
+            MarketImpactScore = 84,
+            Direction = 18,
+            Confidence = 83,
+            Reasoning = "Comments linking Iran and the Strait of Hormuz to energy security could lift oil volatility and pressure U.S. equities sensitive to fuel costs, while supporting energy producers.",
+            AffectedAssetsJson = """["Crude oil","Energy equities","US equities","USD"]""",
+            AnalyzerVersion = "email-preview",
+            RawAiResponse = "{}",
+            AnalyzedAt = now,
+            CreatedAt = now
+        };
     }
 }
