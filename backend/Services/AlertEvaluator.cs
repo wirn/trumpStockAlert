@@ -9,6 +9,7 @@ public sealed class AlertEvaluator(
     AppDbContext dbContext,
     IOptions<AlertSettings> options,
     IEmailSender emailSender,
+    AlertEmailTemplateRenderer emailTemplateRenderer,
     ILogger<AlertEvaluator> logger) : IAlertEvaluator
 {
     private const string SentStatus = "Sent";
@@ -68,7 +69,7 @@ public sealed class AlertEvaluator(
                 continue;
             }
 
-            var message = BuildMessage(settings, analysis);
+            var message = emailTemplateRenderer.Render(settings, analysis);
             var alert = new Alert
             {
                 PostId = analysis.PostId,
@@ -129,29 +130,6 @@ public sealed class AlertEvaluator(
             Recipient = settings.Recipient,
             Message = messageText,
             CreatedAlertIds = createdAlertIds
-        };
-    }
-
-    private static AlertEmailMessage BuildMessage(AlertSettings settings, PostAnalysis analysis)
-    {
-        var subject = $"Market impact alert: score {analysis.MarketImpactScore}";
-        var body = string.Join(
-            Environment.NewLine,
-            $"Score: {analysis.MarketImpactScore}",
-            $"Direction: {analysis.Direction}",
-            $"Confidence: {analysis.Confidence}",
-            string.Empty,
-            analysis.Reasoning,
-            string.Empty,
-            analysis.Post.Content,
-            string.Empty,
-            analysis.Post.Url);
-
-        return new AlertEmailMessage
-        {
-            Recipient = settings.Recipient,
-            Subject = subject,
-            Body = body
         };
     }
 

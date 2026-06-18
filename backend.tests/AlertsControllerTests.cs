@@ -42,6 +42,7 @@ public sealed class AlertsControllerTests : IDisposable
                 AlertType = "MarketImpact"
             }),
             new LogOnlyEmailSender(NullLogger<LogOnlyEmailSender>.Instance),
+            new AlertEmailTemplateRenderer(),
             NullLogger<AlertEvaluator>.Instance);
 
         _controller = new AlertsController(
@@ -87,23 +88,16 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Equal("Sent", alert.SendStatus);
         Assert.NotNull(alert.SentAt);
         Assert.Equal(body.CreatedAlertIds.Single(), alert.Id);
-        Assert.Equal(
-            string.Join(
-                Environment.NewLine,
-                "Score: 90",
-                "Direction: 25",
-                "Confidence: 80",
-                string.Empty,
-                "Test analysis reasoning.",
-                string.Empty,
-                "Tariffs and market-moving comments.",
-                string.Empty,
-                "https://truthsocial.com/@realDonaldTrump/posts/1"),
-            alert.Body);
-        Assert.DoesNotContain("threshold", alert.Body, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Post ID", alert.Body, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("Analysis ID", alert.Body, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("URL:", alert.Body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("TrumpStockAlert", alert.Body);
+        Assert.Contains("Market Impact Score: 90/100", alert.Body);
+        Assert.Contains("Direction: Bullish (+25)", alert.Body);
+        Assert.Contains("Confidence: 80%", alert.Body);
+        Assert.Contains("Test analysis reasoning.", alert.Body);
+        Assert.Contains("Tariffs and market-moving comments.", alert.Body);
+        Assert.Contains("View source post: https://truthsocial.com/@realDonaldTrump/posts/1", alert.Body);
+        Assert.Contains("Threshold: 70", alert.Body);
+        Assert.Contains("Post ID", alert.Body);
+        Assert.Contains("Analysis ID", alert.Body);
     }
 
     [Fact]

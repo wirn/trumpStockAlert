@@ -18,7 +18,8 @@ public sealed class SendGridEmailSenderTests
         {
             Recipient = "recipient@example.com",
             Subject = "Market alert",
-            Body = "Alert body"
+            Body = "Alert body",
+            HtmlBody = "<strong>Alert body</strong>"
         });
 
         Assert.NotNull(handler.Request);
@@ -43,6 +44,12 @@ public sealed class SendGridEmailSenderTests
         Assert.Equal(
             "Alert body",
             root.GetProperty("content")[0].GetProperty("value").GetString());
+        Assert.Equal(
+            "text/html",
+            root.GetProperty("content")[1].GetProperty("type").GetString());
+        Assert.Equal(
+            "<strong>Alert body</strong>",
+            root.GetProperty("content")[1].GetProperty("value").GetString());
     }
 
     [Fact]

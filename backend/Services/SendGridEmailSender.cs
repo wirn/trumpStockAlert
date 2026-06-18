@@ -71,15 +71,31 @@ public sealed class SendGridEmailSender(
             },
             from = new { email = fromEmail },
             subject = message.Subject,
-            content = new[]
+            content = BuildContent(message)
+        };
+    }
+
+    private static object[] BuildContent(AlertEmailMessage message)
+    {
+        var content = new List<object>
+        {
+            new
             {
-                new
-                {
-                    type = "text/plain",
-                    value = message.Body
-                }
+                type = "text/plain",
+                value = message.Body
             }
         };
+
+        if (!string.IsNullOrWhiteSpace(message.HtmlBody))
+        {
+            content.Add(new
+            {
+                type = "text/html",
+                value = message.HtmlBody
+            });
+        }
+
+        return content.ToArray();
     }
 
     private static string GetRequiredConfigurationValue(
