@@ -14,7 +14,7 @@ services:
       Scheduler__ApiKey: ${SCHEDULER_API_KEY:-}
       Analyzer__Provider: ${ANALYZER_PROVIDER:-Mock}
       OpenAI__ApiKey: ${OPENAI_API_KEY:-}
-      OpenAI__Model: ${OPENAI_MODEL:-gpt-5.1-mini}
+      OpenAI__Model: ${OPENAI_MODEL:-gpt-6-luna}
       OpenAI__TimeoutSeconds: ${OPENAI_TIMEOUT_SECONDS:-30}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-LogOnly}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}

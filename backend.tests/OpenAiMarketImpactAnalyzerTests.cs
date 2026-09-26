@@ -82,6 +82,16 @@ public sealed class OpenAiMarketImpactAnalyzerTests
     }
 
     [Fact]
+    public async Task AnalyzeAsync_MissingModel_UsesGpt6Luna()
+    {
+        var analyzer = CreateAnalyzer(model: null);
+
+        var result = await analyzer.AnalyzeAsync(MakePost());
+
+        Assert.Equal("openai-gpt-6-luna-v1", result.AnalyzerVersion);
+    }
+
+    [Fact]
     public async Task AnalyzeAsync_InvalidJson_ThrowsInvalidOperationException()
     {
         var analyzer = CreateAnalyzer(responseJson: "not json");

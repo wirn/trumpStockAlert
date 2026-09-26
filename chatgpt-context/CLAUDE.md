@@ -113,7 +113,7 @@ All backend config follows ASP.NET Core conventions (appsettings → env vars wi
 | `ConnectionStrings:DefaultConnection` | PostgreSQL                                             |
 | `Analyzer:Provider`                   | `"OpenAI"` or omit for mock                            |
 | `OpenAI:ApiKey`                       | Store in user secrets locally                          |
-| `OpenAI:Model`                        | e.g. `gpt-4o-mini`                                     |
+| `OpenAI:Model`                        | e.g. `gpt-6-luna`                                      |
 | `Scheduler:ApiKey`                    | Required for protected scheduler/admin endpoints       |
 | `Collector:TruthSocialUsername`       | e.g. `realDonaldTrump`                                 |
 | `Collector:TruthSocialAccountId`      | Optional; skips account lookup API call                |

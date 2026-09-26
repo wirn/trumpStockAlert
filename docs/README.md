@@ -85,7 +85,7 @@ Create `backend/appsettings.Development.json` (never committed):
   },
   "OpenAI": {
     "ApiKey": "sk-...",
-    "Model": "gpt-4o-mini"
+    "Model": "gpt-6-luna"
   },
   "Scheduler": {
     "ApiKey": "a-random-secret-you-choose"

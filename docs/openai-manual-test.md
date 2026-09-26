@@ -21,7 +21,7 @@ read -rsp "OpenAI API key: " OPENAI_API_KEY
 echo
 export OPENAI_API_KEY
 export ANALYZER_PROVIDER=OpenAI
-export OPENAI_MODEL=gpt-5.1-mini
+export OPENAI_MODEL=gpt-6-luna
 export OPENAI_TIMEOUT_SECONDS=30
 
 docker compose up -d --no-deps --build --force-recreate api

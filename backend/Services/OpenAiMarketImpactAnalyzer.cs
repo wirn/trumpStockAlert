@@ -10,7 +10,7 @@ public sealed class OpenAiMarketImpactAnalyzer(
     ILogger<OpenAiMarketImpactAnalyzer> logger) : IMarketImpactAnalyzer
 {
     private const int DefaultTimeoutSeconds = 30;
-    private const string DefaultModel = "gpt-5.1-mini";
+    private const string DefaultModel = "gpt-6-luna";
 
     public async Task<MarketImpactAnalysisResult> AnalyzeAsync(
         TruthPost post,
