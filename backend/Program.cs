@@ -57,6 +57,8 @@ builder.Services.AddSingleton<AlertEmailTemplateRenderer>();
 builder.Services.AddSingleton<AlertRecipientResolver>();
 builder.Services.AddScoped<IAlertEvaluator, AlertEvaluator>();
 builder.Services.AddScoped<LogOnlyEmailSender>();
+builder.Services.AddSingleton<ISmtpClientFactory, SystemNetSmtpClientFactory>();
+builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddHttpClient<SendGridEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.sendgrid.com");
@@ -66,9 +68,18 @@ builder.Services.AddScoped<IEmailSender>(serviceProvider =>
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
     var emailProvider = configuration["EMAIL_PROVIDER"] ?? configuration["Email:Provider"];
 
-    return string.Equals(emailProvider, "SendGrid", StringComparison.OrdinalIgnoreCase)
-        ? serviceProvider.GetRequiredService<SendGridEmailSender>()
-        : serviceProvider.GetRequiredService<LogOnlyEmailSender>();
+    if (string.Equals(emailProvider, "SendGrid", StringComparison.OrdinalIgnoreCase))
+    {
+        return serviceProvider.GetRequiredService<SendGridEmailSender>();
+    }
+
+    if (string.Equals(emailProvider, "Smtp", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(emailProvider, "GmailSmtp", StringComparison.OrdinalIgnoreCase))
+    {
+        return serviceProvider.GetRequiredService<SmtpEmailSender>();
+    }
+
+    return serviceProvider.GetRequiredService<LogOnlyEmailSender>();
 });
 builder.Services.AddHttpClient<ITruthSocialCollectorClient, TruthSocialCollectorClient>(
     TruthSocialCollectorClient.ConfigureHttpClient);

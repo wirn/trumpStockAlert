@@ -18,6 +18,11 @@ services:
       OpenAI__TimeoutSeconds: ${OPENAI_TIMEOUT_SECONDS:-30}
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-LogOnly}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_STARTTLS: ${SMTP_USE_STARTTLS:-true}
       EMAIL_FROM: ${EMAIL_FROM:-}
       Alerts__Recipient: ${EMAIL_TO:-log-only@trumpstockalert.local}
       AlertEmailPreview__Enabled: ${AlertEmailPreview__Enabled:-false}

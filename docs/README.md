@@ -11,6 +11,14 @@ ssh wirn@gen-eric-server
 -komma åt db-
 ssh -N -L 5432:localhost:5432 wirn@gen-eric-server
 
+-skickar testmail-
+sed -i 's/^AlertEmailPreview__Enabled=.*/AlertEmailPreview__Enabled=true/' .env && \
+docker compose up -d --build api && \
+until curl -fsS http://100.92.230.97:8080/api/alerts >/dev/null; do sleep 1; done && \
+curl -i -X POST http://100.92.230.97:8080/api/alerts/email-preview \
+  -H "X-TrumpStockAlert-Scheduler-Key: snusGrus4860U!"; \
+sed -i 's/^AlertEmailPreview__Enabled=.*/AlertEmailPreview__Enabled=false/' .env && \
+docker compose up -d --build api
 
 SELECT
     tp."Id" AS "PostId",
