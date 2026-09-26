@@ -1,6 +1,6 @@
-using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using MimeKit;
 using TrumpStockAlert.Api.Services;
 
 namespace TrumpStockAlert.Api.Tests;
@@ -142,56 +142,41 @@ public sealed class SmtpEmailSenderTests
 
     private sealed class CapturingSmtpClientFactory : ISmtpClientFactory
     {
+        public CapturingSmtpClientFactory()
+        {
+            Client = new CapturingSmtpClient(settings => Settings = settings);
+        }
+
         public SmtpClientSettings? Settings { get; private set; }
 
-        public CapturingSmtpClient Client { get; } = new();
+        public CapturingSmtpClient Client { get; }
 
-        public ISmtpClient Create(SmtpClientSettings settings)
+        public ISmtpClient Create()
         {
-            Settings = settings;
             return Client;
         }
+
     }
 
-    private sealed class CapturingSmtpClient : ISmtpClient
+    private sealed class CapturingSmtpClient(Action<SmtpClientSettings> captureSettings) : ISmtpClient
     {
         public CapturedMessage? Message { get; private set; }
 
-        public async Task SendMailAsync(
-            MailMessage message,
+        public Task SendAsync(
+            SmtpClientSettings settings,
+            MimeMessage message,
             CancellationToken cancellationToken)
         {
-            string? plainTextBody = null;
-            string? htmlBody = null;
-
-            if (message.AlternateViews.Count == 0)
-            {
-                plainTextBody = message.Body;
-            }
-
-            foreach (var view in message.AlternateViews)
-            {
-                using var reader = new StreamReader(
-                    view.ContentStream,
-                    leaveOpen: true);
-                var content = await reader.ReadToEndAsync(cancellationToken);
-
-                if (view.ContentType.MediaType == "text/plain")
-                {
-                    plainTextBody = content;
-                }
-                else if (view.ContentType.MediaType == "text/html")
-                {
-                    htmlBody = content;
-                }
-            }
+            captureSettings(settings);
 
             Message = new CapturedMessage(
-                message.From?.Address,
-                message.To.Single().Address,
-                message.Subject,
-                plainTextBody,
-                htmlBody);
+                message.From.Mailboxes.Single().Address,
+                message.To.Mailboxes.Single().Address,
+                message.Subject ?? string.Empty,
+                message.TextBody,
+                message.HtmlBody);
+
+            return Task.CompletedTask;
         }
 
         public void Dispose()

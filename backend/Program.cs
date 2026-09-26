@@ -57,7 +57,7 @@ builder.Services.AddSingleton<AlertEmailTemplateRenderer>();
 builder.Services.AddSingleton<AlertRecipientResolver>();
 builder.Services.AddScoped<IAlertEvaluator, AlertEvaluator>();
 builder.Services.AddScoped<LogOnlyEmailSender>();
-builder.Services.AddSingleton<ISmtpClientFactory, SystemNetSmtpClientFactory>();
+builder.Services.AddSingleton<ISmtpClientFactory, MailKitSmtpClientFactory>();
 builder.Services.AddScoped<SmtpEmailSender>();
 builder.Services.AddHttpClient<SendGridEmailSender>(client =>
 {

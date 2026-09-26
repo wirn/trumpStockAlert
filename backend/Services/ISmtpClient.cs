@@ -1,8 +1,11 @@
-using System.Net.Mail;
+using MimeKit;
 
 namespace TrumpStockAlert.Api.Services;
 
 public interface ISmtpClient : IDisposable
 {
-    Task SendMailAsync(MailMessage message, CancellationToken cancellationToken);
+    Task SendAsync(
+        SmtpClientSettings settings,
+        MimeMessage message,
+        CancellationToken cancellationToken);
 }

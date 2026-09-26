@@ -1,6 +1,6 @@
-using System.Net.Mail;
-using System.Net.Mime;
-using System.Text;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
 
 namespace TrumpStockAlert.Api.Services;
 
@@ -25,11 +25,11 @@ public sealed class SmtpEmailSender(
             ?? settings.Username;
 
         using var mailMessage = BuildMessage(message, fromEmail);
-        using var smtpClient = smtpClientFactory.Create(settings);
+        using var smtpClient = smtpClientFactory.Create();
 
         try
         {
-            await smtpClient.SendMailAsync(mailMessage, cancellationToken);
+            await smtpClient.SendAsync(settings, mailMessage, cancellationToken);
             logger.LogInformation(
                 "SMTP alert email sent. Recipient: {Recipient}. Subject: {Subject}.",
                 message.Recipient,
@@ -39,46 +39,39 @@ public sealed class SmtpEmailSender(
         {
             throw;
         }
-        catch (SmtpException exception)
+        catch (Exception exception) when (exception is AuthenticationException
+            or SmtpCommandException
+            or SmtpProtocolException
+            or SslHandshakeException
+            or IOException)
         {
             logger.LogError(
-                "SMTP alert email failed. Recipient: {Recipient}. Subject: {Subject}. StatusCode: {StatusCode}.",
+                "SMTP alert email failed. Recipient: {Recipient}. Subject: {Subject}. ErrorType: {ErrorType}.",
                 message.Recipient,
                 message.Subject,
-                exception.StatusCode);
+                exception.GetType().Name);
 
             throw new InvalidOperationException("SMTP alert email failed.", exception);
         }
     }
 
-    private static MailMessage BuildMessage(AlertEmailMessage message, string fromEmail)
+    private static MimeMessage BuildMessage(AlertEmailMessage message, string fromEmail)
     {
-        var mailMessage = new MailMessage
+        var mailMessage = new MimeMessage
         {
-            From = new MailAddress(fromEmail),
-            Subject = message.Subject,
-            SubjectEncoding = Encoding.UTF8,
-            BodyEncoding = Encoding.UTF8
+            Subject = message.Subject
         };
-        mailMessage.To.Add(new MailAddress(message.Recipient));
+        mailMessage.From.Add(MailboxAddress.Parse(fromEmail));
+        mailMessage.To.Add(MailboxAddress.Parse(message.Recipient));
 
-        if (string.IsNullOrWhiteSpace(message.HtmlBody))
+        var bodyBuilder = new BodyBuilder
         {
-            mailMessage.Body = message.Body;
-            mailMessage.IsBodyHtml = false;
-            return mailMessage;
-        }
-
-        mailMessage.AlternateViews.Add(
-            AlternateView.CreateAlternateViewFromString(
-                message.Body,
-                Encoding.UTF8,
-                MediaTypeNames.Text.Plain));
-        mailMessage.AlternateViews.Add(
-            AlternateView.CreateAlternateViewFromString(
-                message.HtmlBody,
-                Encoding.UTF8,
-                MediaTypeNames.Text.Html));
+            TextBody = message.Body,
+            HtmlBody = string.IsNullOrWhiteSpace(message.HtmlBody)
+                ? null
+                : message.HtmlBody
+        };
+        mailMessage.Body = bodyBuilder.ToMessageBody();
 
         return mailMessage;
     }
