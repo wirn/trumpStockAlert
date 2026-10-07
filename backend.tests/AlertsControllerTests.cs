@@ -372,6 +372,46 @@ public sealed class AlertsControllerTests : IDisposable
         Assert.Equal(1, await _db.Alerts.CountAsync());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RunAlerts_FailedAlert_RetriesSameRowAndDedupesOnlyAfterSuccess(bool retryFails)
+    {
+        await SeedAnalysisAsync(marketImpactScore: 90);
+        var sender = new CapturingEmailSender { Fail = true };
+        var controller = CreateController("retry@example.com", emailSender: sender);
+        await controller.RunAlerts(ValidKey, CancellationToken.None);
+        var original = await _db.Alerts.SingleAsync();
+        var originalId = original.Id;
+        var createdAt = original.CreatedAt;
+        Assert.Equal("Failed", original.SendStatus);
+
+        sender.Fail = retryFails;
+        var result = await controller.RunAlerts(ValidKey, CancellationToken.None);
+        var body = Assert.IsType<AlertRunResponse>(Assert.IsType<OkObjectResult>(result.Result).Value);
+        Assert.Equal(0, body.CreatedAlertCount);
+        Assert.Empty(body.CreatedAlertIds);
+        Assert.Equal(0, body.DuplicateCount);
+        Assert.Equal(retryFails ? 0 : 1, body.SentCount);
+        Assert.Equal(retryFails ? 1 : 0, body.FailedCount);
+        var retried = await _db.Alerts.SingleAsync();
+        Assert.Equal(originalId, retried.Id);
+        Assert.Equal(createdAt, retried.CreatedAt);
+        Assert.Equal(retryFails ? "Failed" : "Sent", retried.SendStatus);
+        if (retryFails)
+        {
+            Assert.Null(retried.SentAt);
+            Assert.Equal("Test send failure.", retried.ErrorMessage);
+        }
+        else
+        {
+            Assert.NotNull(retried.SentAt);
+            Assert.Null(retried.ErrorMessage);
+            await controller.RunAlerts(ValidKey, CancellationToken.None);
+            Assert.Equal(2, sender.Messages.Count);
+        }
+    }
+
     private async Task SeedAnalysisAsync(
         int marketImpactScore,
         int confidence = 80,
@@ -443,7 +483,7 @@ public sealed class AlertsControllerTests : IDisposable
                 Recipient = alertRecipient,
                 AlertType = "MarketImpact"
             }),
-            new LogOnlyEmailSender(NullLogger<LogOnlyEmailSender>.Instance),
+            emailSender ?? new LogOnlyEmailSender(NullLogger<LogOnlyEmailSender>.Instance),
             new AlertEmailTemplateRenderer(),
             new AlertRecipientResolver(configuration),
             NullLogger<AlertEvaluator>.Instance);
@@ -467,11 +507,16 @@ public sealed class AlertsControllerTests : IDisposable
 
     private sealed class CapturingEmailSender : IEmailSender
     {
+        public bool Fail { get; set; }
         public List<AlertEmailMessage> Messages { get; } = [];
 
         public Task SendAsync(AlertEmailMessage message, CancellationToken cancellationToken = default)
         {
             Messages.Add(message);
+            if (Fail)
+            {
+                throw new InvalidOperationException("Test send failure.");
+            }
             return Task.CompletedTask;
         }
     }

@@ -63,22 +63,21 @@ public sealed class AlertEvaluator(
             foreach (var recipient in recipients)
             {
                 var recipientSettings = settings with { Recipient = recipient };
-                var isDuplicate = await dbContext.Alerts
-                    .AsNoTracking()
-                    .AnyAsync(alert =>
+                var existingAlert = await dbContext.Alerts
+                    .SingleOrDefaultAsync(alert =>
                         alert.PostAnalysisId == analysis.Id
                         && alert.AlertType == recipientSettings.AlertType
                         && alert.Recipient == recipientSettings.Recipient,
                         cancellationToken);
 
-                if (isDuplicate)
+                if (existingAlert is not null && existingAlert.SendStatus != FailedStatus)
                 {
                     duplicateCount++;
                     continue;
                 }
 
                 var message = emailTemplateRenderer.Render(recipientSettings, analysis);
-                var alert = new Alert
+                var alert = existingAlert ?? new Alert
                 {
                     PostId = analysis.PostId,
                     PostAnalysisId = analysis.Id,
@@ -94,12 +93,15 @@ public sealed class AlertEvaluator(
                 try
                 {
                     await emailSender.SendAsync(message, cancellationToken);
+                    alert.SendStatus = SentStatus;
+                    alert.ErrorMessage = null;
                     alert.SentAt = DateTimeOffset.UtcNow;
                     sentCount++;
                 }
                 catch (Exception exception) when (exception is not OperationCanceledException)
                 {
                     alert.SendStatus = FailedStatus;
+                    alert.SentAt = null;
                     alert.ErrorMessage = exception.Message;
                     failedCount++;
                     logger.LogError(
@@ -109,9 +111,15 @@ public sealed class AlertEvaluator(
                         recipientSettings.Recipient);
                 }
 
-                dbContext.Alerts.Add(alert);
+                if (existingAlert is null)
+                {
+                    dbContext.Alerts.Add(alert);
+                }
                 await dbContext.SaveChangesAsync(cancellationToken);
-                createdAlertIds.Add(alert.Id);
+                if (existingAlert is null)
+                {
+                    createdAlertIds.Add(alert.Id);
+                }
             }
         }
 

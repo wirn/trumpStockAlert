@@ -34,7 +34,7 @@ public sealed class AlertsController(
     /// </summary>
     /// <remarks>
     /// Requires the <c>X-TrumpStockAlert-Scheduler-Key</c> header.
-    /// Safe to call repeatedly; already-created alerts are skipped.
+    /// Already-sent alerts are skipped; failed alerts are retried on their existing records.
     /// </remarks>
     [HttpPost("run")]
     [ProducesResponseType(typeof(AlertRunResponse), StatusCodes.Status200OK)]
